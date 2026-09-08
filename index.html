@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>МаркМатика</title>
+<style>
+  /* ============ GLOBAL TOKENS (role picker / setup / pin / parent) ============ */
+  :root{
+    color-scheme: light;
+    --bg:#FAF8FF; --surface:#FFFFFF; --surface-2:#F1EDFB; --surface-3:#E7DFFB;
+    --ink:#1E1B2E; --ink-soft:#5B5570; --ink-mute:#8981A6;
+    --accent:#6C4FF6; --accent-strong:#5636E0; --accent-ink:#FFFFFF;
+    --line:#E4DEF7;
+    --good:#0ca30c; --good-bg:#E4F7E1; --warning:#a86a00; --warning-bg:#FCEFD2; --critical:#d03b3b; --critical-bg:#FBE3E3;
+    --shadow-sm: 0 1px 2px rgba(30,27,46,.06);
+    --shadow-lg: 0 16px 40px -18px rgba(30,27,46,.35);
+    --seq-0:#EDEAF9; --seq-1:#D9F5E4; --seq-2:#AEE8C4; --seq-3:#72CE97; --seq-4:#38A968; --seq-5:#15743F;
+    --font-display:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-kid-display:ui-rounded,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --font-kid-body:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#15111F; --surface:#1D1830; --surface-2:#251F3D; --surface-3:#2E2650;
+      --ink:#F1EDFB; --ink-soft:#B7AFD1; --ink-mute:#8579A6;
+      --accent:#9B85FF; --accent-strong:#B39CFF; --accent-ink:#15111F;
+      --line:#332B52;
+      --good:#3fd08c; --good-bg:#123524; --warning:#f0b84c; --warning-bg:#3a2c0f; --critical:#ff6b6e; --critical-bg:#3a1717;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+      --shadow-lg: 0 20px 48px -18px rgba(0,0,0,.6);
+      --seq-0:#251F3D; --seq-1:#123524; --seq-2:#155631; --seq-3:#1D7A45; --seq-4:#2FA85D; --seq-5:#4FD684;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#15111F; --surface:#1D1830; --surface-2:#251F3D; --surface-3:#2E2650;
+    --ink:#F1EDFB; --ink-soft:#B7AFD1; --ink-mute:#8579A6;
+    --accent:#9B85FF; --accent-strong:#B39CFF; --accent-ink:#15111F;
+    --line:#332B52;
+    --good:#3fd08c; --good-bg:#123524; --warning:#f0b84c; --warning-bg:#3a2c0f; --critical:#ff6b6e; --critical-bg:#3a1717;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-lg: 0 20px 48px -18px rgba(0,0,0,.6);
+    --seq-0:#251F3D; --seq-1:#123524; --seq-2:#155631; --seq-3:#1D7A45; --seq-4:#2FA85D; --seq-5:#4FD684;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0;}
+  p{margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+  input{font-family:inherit;}
+  [hidden]{display:none!important;}
+  .tabular{font-variant-numeric:tabular-nums;}
+
+  #app{min-height:100vh; width:100%;}
+
+  /* ---------- shared chrome bits ---------- */
+  .center-wrap{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:28px 16px;
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:20px;
+    box-shadow:var(--shadow-sm);
+  }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border-radius:14px; border:1px solid transparent; padding:13px 20px;
+    font-weight:700; font-size:15px; font-family:var(--font-display);
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+  .btn:active{transform:translateY(1px) scale(.99);}
+  .btn-primary{background:var(--accent); color:var(--accent-ink); box-shadow:var(--shadow-sm);}
+  .btn-primary:hover{box-shadow:var(--shadow-lg);}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border-color:var(--line);}
+  .btn-ghost:hover{background:var(--surface-2); color:var(--ink);}
+  .btn-danger{background:transparent; color:var(--critical); border-color:var(--critical);}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .field-label{font-size:13px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; display:block;}
+  .text-input, .num-input, .date-input{
+    width:100%; padding:11px 13px; border-radius:11px; border:1.5px solid var(--line);
+    background:var(--bg); color:var(--ink); font-size:15px; font-family:var(--font-body);
+  }
+  .text-input:focus, .num-input:focus, .date-input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .stepper{display:flex; align-items:center; gap:12px;}
+  .stepper button{width:38px; height:38px; border-radius:10px; border:1.5px solid var(--line); background:var(--surface-2); color:var(--ink); font-size:18px; font-weight:800;}
+  .stepper output{font-family:var(--font-display); font-weight:800; font-size:18px; min-width:34px; text-align:center;}
+  .app-logo{font-family:var(--font-kid-display); font-weight:800; letter-spacing:.2px;}
+  .muted{color:var(--ink-mute);}
+  .soft{color:var(--ink-soft);}
+  a.linklike{color:var(--accent-strong); font-weight:700; text-decoration:none; cursor:pointer;}
+  a.linklike:hover{text-decoration:underline;}
+  .pin-dots{display:flex; gap:14px; justify-content:center; margin:18px 0;}
+  .pin-dot{width:16px; height:16px; border-radius:50%; border:2px solid var(--line); background:transparent; transition:background .12s, border-color .12s;}
+  .pin-dot.filled{background:var(--accent); border-color:var(--accent);}
+  .pin-dot.error{background:var(--critical); border-color:var(--critical);}
+  .pinpad{display:grid; grid-template-columns:repeat(3,64px); gap:12px; justify-content:center;}
+  .pinpad button{height:64px; border-radius:16px; border:1.5px solid var(--line); background:var(--surface-2); color:var(--ink); font-size:22px; font-weight:800; font-family:var(--font-display);}
+  .pinpad button:active{background:var(--surface-3);}
+  .pinpad .pp-empty{visibility:hidden;}
+  .shake{animation:shakeX .4s;}
+  @keyframes shakeX{10%,90%{transform:translateX(-2px);}20%,80%{transform:translateX(4px);}30%,50%,70%{transform:translateX(-8px);}40%,60%{transform:translateX(8px);}}
+  @media (prefers-reduced-motion: reduce){ .shake{animation:none;} }
+
+  #loading{min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; color:var(--ink-mute); font-family:var(--font-display); font-weight:700;}
+  .spinner{width:34px; height:34px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--accent); animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion: reduce){ .spinner{animation:spin 1.6s steps(8) infinite;} }
+
+  /* ============ ROLE / SETUP / PIN SCREENS ============ */
+  .setup-shell, .role-shell, .pin-shell{width:100%; max-width:460px;}
+  .role-shell .card, .pin-shell .card, .setup-shell .card{padding:32px 28px;}
+  .brand-row{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:22px;}
+  .brand-mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-strong)); display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .brand-name{font-size:22px;}
+  .role-title{text-align:center; font-size:22px; margin-bottom:6px;}
+  .role-sub{text-align:center; margin-bottom:24px;}
+  .role-options{display:flex; flex-direction:column; gap:12px;}
+  .role-btn{
+    display:flex; align-items:center; gap:14px; padding:18px; border-radius:16px;
+    border:1.5px solid var(--line); background:var(--surface-2); text-align:left; width:100%;
+  }
+  .role-btn:hover{border-color:var(--accent); background:var(--surface-3);}
+  .role-emoji{font-size:30px; line-height:1;}
+  .role-btn-title{font-family:var(--font-display); font-weight:800; font-size:16px;}
+  .role-btn-sub{font-size:13px; color:var(--ink-mute); margin-top:2px;}
+
+  .setup-steps{display:flex; flex-direction:column; gap:18px; margin:20px 0;}
+  .setup-row{display:flex; gap:14px;}
+  .setup-row > div{flex:1;}
+
+  /* ============ PARENT DASHBOARD ============ */
+  .parent-wrap{max-width:920px; margin:0 auto; padding:28px 20px 60px;}
+  .parent-topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; gap:10px; flex-wrap:wrap;}
+  .parent-title{display:flex; align-items:center; gap:10px;}
+  .parent-title h1{font-size:21px;}
+  .topbar-actions{display:flex; gap:8px;}
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px;}
+  @media (max-width:640px){ .stat-grid{grid-template-columns:repeat(2,1fr);} }
+  .stat-tile{padding:16px 16px; display:flex; flex-direction:column; gap:4px;}
+  .stat-tile .stat-label{font-size:12px; font-weight:700; color:var(--ink-mute); text-transform:uppercase; letter-spacing:.04em;}
+  .stat-tile .stat-value{font-family:var(--font-display); font-size:26px; font-weight:800;}
+  .stat-tile .stat-sub{font-size:12.5px; color:var(--ink-soft);}
+  .section-card{padding:20px 20px 22px; margin-bottom:18px;}
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; gap:8px; flex-wrap:wrap;}
+  .section-head h2{font-size:16px;}
+  .legend-row{display:flex; align-items:center; gap:14px; font-size:12.5px; color:var(--ink-mute); flex-wrap:wrap;}
+  .legend-chip{display:inline-flex; align-items:center; gap:6px;}
+  .legend-swatch{width:12px;height:12px;border-radius:4px;display:inline-block;}
+
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-cell{
+    aspect-ratio:1; border-radius:8px; border:1px solid var(--line); position:relative;
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-mute);
+  }
+  .cal-cell.has-data{cursor:pointer; border-color:transparent;}
+  .cal-cell.has-data:hover{outline:2px solid var(--accent); outline-offset:1px;}
+  .cal-cell .cal-daynum{position:absolute; top:3px; left:5px; font-size:9.5px; opacity:.65;}
+  .cal-wd{text-align:center; font-size:11px; font-weight:700; color:var(--ink-mute); padding-bottom:4px;}
+
+  .table-bars{display:flex; flex-direction:column; gap:9px;}
+  .table-bar-row{display:grid; grid-template-columns:52px 1fr 96px; gap:10px; align-items:center;}
+  .table-bar-label{font-family:var(--font-display); font-weight:800; font-size:14px;}
+  .table-bar-track{height:14px; border-radius:7px; background:var(--surface-2); overflow:hidden; position:relative;}
+  .table-bar-fill{height:100%; border-radius:7px; background:var(--seq-4);}
+  .table-bar-status{font-size:12px; font-weight:700; display:flex; align-items:center; gap:5px; justify-content:flex-end;}
+  .dot{width:8px;height:8px;border-radius:50%; display:inline-block;}
+
+  .badge-row{display:flex; flex-wrap:wrap; gap:8px;}
+  .badge-chip{display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line); font-size:13px; font-weight:700;}
+  .badge-chip.locked{opacity:.4;}
+
+  .day-modal-backdrop{position:fixed; inset:0; background:rgba(20,15,35,.5); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;}
+  .day-modal{max-width:420px; width:100%; padding:22px; max-height:80vh; overflow:auto;}
+  .day-q-row{display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); font-family:var(--font-display); font-weight:700;}
+  .day-q-row:last-child{border-bottom:none;}
+  .q-status{font-size:13px; font-weight:800;}
+
+  .settings-grid{display:flex; flex-direction:column; gap:16px;}
+  .danger-box{border:1.5px dashed var(--critical); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px;}
+
+  /* ============ KID MODE (fixed vivid skins, not theme-adaptive) ============ */
+  .kidzone{min-height:100vh; font-family:var(--font-kid-body); position:relative; overflow-x:hidden;}
+  .kidzone, .kidzone input, .kidzone button{font-family:var(--font-kid-body);}
+  .kidzone h1, .kidzone h2, .kidzone .kd-display{font-family:var(--font-kid-display);}
+
+  /* bare attribute selectors (not scoped to .kidzone) so #feedback-overlay,
+     which lives outside .kidzone, still resolves the current world's vars */
+  [data-world="cube"]{ --w-bg:#123832; --w-bg2:#0B2620; --w-card:#17453C; --w-card-2:#1E5347; --w-accent:#5EEAD4; --w-accent-2:#F5D90A; --w-ink:#EFFFFB; --w-soft:#9FD9CC; }
+  [data-world="arena"]{ --w-bg:#0B3D1E; --w-bg2:#062A14; --w-card:#124D28; --w-card-2:#175E31; --w-accent:#FFD23F; --w-accent-2:#3DDC64; --w-ink:#F3FFF0; --w-soft:#9FCBA8; }
+  [data-world="hunter"]{ --w-bg:#1B0F2E; --w-bg2:#120A22; --w-card:#2A1748; --w-card-2:#341D59; --w-accent:#FF5B4C; --w-accent-2:#B892FF; --w-ink:#F5EEFF; --w-soft:#B6A3D9; }
+  [data-world="studio"]{ --w-bg:#3B0B2A; --w-bg2:#280621; --w-card:#57123C; --w-card-2:#6A1749; --w-accent:#FF7A45; --w-accent-2:#FFD84D; --w-ink:#FFF3EC; --w-soft:#E3A9C4; }
+
+  .kidzone{ background:radial-gradient(circle at 15% 0%, var(--w-bg2), var(--w-bg) 60%); color:var(--w-ink); }
+  .kid-pattern{position:absolute; inset:0; opacity:.35; pointer-events:none;}
+  .kidzone[data-world="cube"] .kid-pattern{background-image:repeating-linear-gradient(0deg, rgba(94,234,212,.10) 0 2px, transparent 2px 34px), repeating-linear-gradient(90deg, rgba(94,234,212,.10) 0 2px, transparent 2px 34px);}
+  .kidzone[data-world="arena"] .kid-pattern{background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 40px, rgba(255,255,255,0) 40px 80px);}
+  .kidzone[data-world="hunter"] .kid-pattern{background-image:radial-gradient(circle at 80% 20%, rgba(255,91,76,.22), transparent 45%), radial-gradient(circle at 10% 80%, rgba(184,146,255,.18), transparent 40%);}
+  .kidzone[data-world="studio"] .kid-pattern{background-image:radial-gradient(circle at 90% 10%, rgba(255,216,77,.25) 0 2px, transparent 3px), radial-gradient(circle at 20% 30%, rgba(255,216,77,.2) 0 2px, transparent 3px), radial-gradient(circle at 60% 80%, rgba(255,216,77,.2) 0 2px, transparent 3px), radial-gradient(circle at 35% 60%, rgba(255,216,77,.18) 0 2px, transparent 3px); background-size:220px 220px;}
+
+  .kid-inner{position:relative; z-index:1; max-width:640px; margin:0 auto; padding:20px 18px 44px; min-height:100vh; display:flex; flex-direction:column;}
+  .kid-topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .kid-pill{display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.12); border-radius:999px; padding:7px 13px; font-weight:800; font-size:14px;}
+  .kid-back{background:rgba(255,255,255,.12); border:none; color:var(--w-ink); width:38px;height:38px;border-radius:50%; font-size:16px; font-weight:900; display:flex;align-items:center;justify-content:center;}
+
+  .kid-card{background:var(--w-card); border-radius:22px; padding:22px; box-shadow:0 14px 34px -16px rgba(0,0,0,.5);}
+  .kid-btn{
+    border:none; border-radius:16px; padding:16px 22px; font-weight:800; font-size:17px;
+    color:var(--w-bg); background:var(--w-accent); font-family:var(--font-kid-display);
+    box-shadow:0 8px 0 0 rgba(0,0,0,.18);
+  }
+  .kid-btn:active{transform:translateY(3px); box-shadow:0 5px 0 0 rgba(0,0,0,.18);}
+  .kid-btn.secondary{background:rgba(255,255,255,.14); color:var(--w-ink); box-shadow:none;}
+  .kid-btn:disabled{opacity:.4;}
+
+  /* world select */
+  .world-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;}
+  @media (max-width:420px){ .world-grid{grid-template-columns:1fr;} }
+  .world-card{border-radius:20px; padding:18px; text-align:left; border:2px solid transparent; color:#fff; transition:transform .15s ease, border-color .15s ease;}
+  .world-card .we{width:48px; height:48px; margin-bottom:2px;}
+  .world-card .we svg{width:100%; height:100%; display:block;}
+  .world-card .wt{font-family:var(--font-kid-display); font-weight:800; font-size:16px; margin-top:6px;}
+  .world-card .ws{font-size:12.5px; opacity:.85; margin-top:2px;}
+  .wc-cube{background:linear-gradient(160deg,#17453C,#0B2620); }
+  .wc-arena{background:linear-gradient(160deg,#124D28,#062A14);}
+  .wc-hunter{background:linear-gradient(160deg,#2A1748,#120A22);}
+  .wc-studio{background:linear-gradient(160deg,#57123C,#280621);}
+  .world-card:hover{border-color:rgba(255,255,255,.5); transform:translateY(-2px);}
+  .world-card:active{transform:translateY(0) scale(.98);}
+  .world-card .wp{font-size:11.5px; font-weight:800; margin-top:8px; opacity:.9; display:inline-block; background:rgba(255,255,255,.16); border-radius:999px; padding:3px 9px;}
+
+  @keyframes mascotBob{ 0%,100%{transform:translateY(0) rotate(-1deg);} 50%{transform:translateY(-6px) rotate(1deg);} }
+  @keyframes mascotPop{ 0%{transform:scale(.4) rotate(-8deg); opacity:0;} 60%{transform:scale(1.08) rotate(3deg); opacity:1;} 100%{transform:scale(1) rotate(0);} }
+  @keyframes fmHappy{ 0%{transform:scale(1) rotate(0);} 25%{transform:scale(1.18) rotate(-8deg);} 50%{transform:scale(1.05) rotate(6deg);} 75%{transform:scale(1.15) rotate(-4deg);} 100%{transform:scale(1) rotate(0);} }
+  @keyframes fmSad{ 0%,100%{transform:translateX(0) rotate(0);} 20%{transform:translateX(-6px) rotate(-6deg);} 40%{transform:translateX(5px) rotate(5deg);} 60%{transform:translateX(-4px) rotate(-4deg);} 80%{transform:translateX(3px) rotate(3deg);} }
+  @keyframes sparkOut{ 0%{transform:translate(0,0) scale(.4); opacity:1;} 100%{transform:translate(var(--sx),var(--sy)) scale(1); opacity:0;} }
+  @keyframes trophyDrop{ 0%{transform:translateY(-24px) scale(.5) rotate(-10deg); opacity:0;} 60%{transform:translateY(4px) scale(1.1) rotate(4deg); opacity:1;} 100%{transform:translateY(0) scale(1) rotate(0);} }
+  @keyframes nodeUnlock{ 0%{box-shadow:0 0 0 0 rgba(255,255,255,.6);} 100%{box-shadow:0 0 0 16px rgba(255,255,255,0);} }
+
+  /* level path */
+  .trophy-row{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin:8px 0 6px; min-height:26px;}
+  .trophy-chip{font-size:19px; filter:drop-shadow(0 2px 2px rgba(0,0,0,.3));}
+  .trophy-empty{font-size:12px; color:var(--w-soft); opacity:.8;}
+  .level-path{position:relative; display:flex; flex-direction:column; padding:14px 4px 40px; max-width:520px; margin:0 auto; width:100%;}
+  .level-node{position:relative; display:flex; align-items:center; gap:14px; padding:13px 6px;}
+  .level-node:not(:last-child):before{content:""; position:absolute; left:27px; top:54px; width:2px; height:calc(100% - 8px); background:rgba(255,255,255,.16); z-index:0;}
+  .level-node-badge{width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; flex:none; position:relative; z-index:1; background:rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.2); font-family:var(--font-kid-display);}
+  .level-node.lvl-done .level-node-badge{background:var(--w-accent-2); color:var(--w-bg); border-color:var(--w-accent-2);}
+  .level-node.lvl-current .level-node-badge{background:var(--w-accent); color:var(--w-bg); border-color:#fff; animation:mascotBob 2.2s ease-in-out infinite, nodeUnlock 1.6s ease-out 1;}
+  .level-node.lvl-locked{opacity:.42;}
+  .level-node.lvl-current, .level-node.lvl-done{cursor:pointer;}
+  .level-node-info{flex:1; min-width:0;}
+  .level-node-name{font-family:var(--font-kid-display); font-weight:800; font-size:15px;}
+  .level-node-sub{font-size:12px; color:var(--w-soft); margin-top:1px;}
+  .level-node-prize{font-size:21px; flex:none;}
+  .level-node.lvl-boss .level-node-badge{box-shadow:0 0 0 4px rgba(255,255,255,.15);}
+
+  .mission-stage{display:inline-block; background:rgba(255,255,255,.14); border-radius:999px; padding:6px 14px; font-size:12.5px; font-weight:800; letter-spacing:.02em; margin-bottom:14px;}
+  .mission-hero{width:112px; height:112px; margin:6px auto 4px;}
+  .mission-hero svg{width:100%; height:100%; display:block; animation:mascotBob 2.6s ease-in-out infinite;}
+  .summary-mascot{width:84px; height:84px; margin:2px auto 6px;}
+  .summary-mascot svg{width:100%; height:100%; display:block; animation:mascotPop .5s ease-out;}
+  .mission-title{font-size:22px; text-align:center; margin-bottom:6px;}
+  .mission-sub{text-align:center; color:var(--w-soft); font-size:14.5px; margin-bottom:18px;}
+  .mission-count{display:flex; justify-content:center; gap:22px; margin:18px 0;}
+  .mission-count-item{text-align:center;}
+  .mission-count-num{font-family:var(--font-kid-display); font-size:26px; font-weight:800;}
+  .mission-count-lbl{font-size:11.5px; color:var(--w-soft); text-transform:uppercase; letter-spacing:.04em;}
+
+  .progress-dots{display:flex; gap:5px; flex-wrap:wrap; justify-content:center;}
+  .progress-dot{width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,.22);}
+  .progress-dot.pd-ok{background:var(--w-accent-2);}
+  .progress-dot.pd-retry{background:#F5D90A; opacity:.8;}
+  .progress-dot.pd-bad{background:#FF6B6E;}
+  .progress-dot.pd-current{outline:2px solid #fff; outline-offset:2px;}
+
+  .quiz-card{margin-top:16px; text-align:center; position:relative;}
+  .quiz-eq{font-family:var(--font-kid-display); font-weight:800; font-size:44px; margin:6px 0 18px; letter-spacing:.01em;}
+  .quiz-answer-box{
+    min-height:64px; border-radius:16px; background:rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.25);
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-kid-display); font-size:32px; font-weight:800;
+    margin-bottom:16px; letter-spacing:.05em;
+  }
+  .keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:9px;}
+  .keypad button{
+    height:56px; border-radius:14px; border:none; background:rgba(255,255,255,.12); color:var(--w-ink);
+    font-size:20px; font-weight:800; font-family:var(--font-kid-display);
+  }
+  .keypad button:active{background:rgba(255,255,255,.22);}
+  .keypad .kp-check{background:var(--w-accent); color:var(--w-bg);}
+  .keypad .kp-clear{background:rgba(255,255,255,.08); font-size:15px;}
+
+  .quiz-commute-ref{
+    font-family:var(--font-kid-display); font-weight:700; font-size:14.5px; color:var(--w-soft);
+    background:rgba(255,255,255,.08); border-radius:12px; padding:8px 14px; margin-bottom:10px; letter-spacing:.01em;
+  }
+  .quiz-choices{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:4px 0 18px;}
+  .quiz-choice-btn{
+    height:64px; border-radius:16px; border:2px solid rgba(255,255,255,.18); background:rgba(255,255,255,.1);
+    color:var(--w-ink); font-family:var(--font-kid-display); font-size:26px; font-weight:800;
+  }
+  .quiz-choice-btn:active{background:rgba(255,255,255,.22);}
+  .quiz-choice-btn.qc-correct{background:var(--w-accent-2); color:var(--w-bg); border-color:var(--w-accent-2);}
+  .quiz-choice-btn.qc-wrong{background:#FF6B6E; color:#fff; border-color:#FF6B6E; opacity:.85;}
+  .quiz-sequence{display:flex; flex-direction:column; gap:8px; margin:4px 0 18px;}
+  .seq-row{
+    display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:14px;
+    background:rgba(255,255,255,.08); font-family:var(--font-kid-display); font-weight:800; font-size:19px; color:var(--w-soft);
+    border:2px solid transparent; transition:background .15s;
+  }
+  .seq-row.seq-row-active{background:rgba(255,255,255,.16); color:var(--w-ink); border-color:var(--w-accent);}
+  .seq-row .seq-box{min-width:38px; display:inline-block; text-align:center; border-bottom:3px solid rgba(255,255,255,.3);}
+  .seq-row.seq-row-active .seq-box{border-bottom-color:var(--w-accent);}
+  .seq-row.seq-ok{color:var(--w-accent-2);}
+  .seq-row.seq-bad{color:#FF9C97;}
+
+  .bonus-card{background:var(--w-card-2); color:var(--w-ink);}
+  .bonus-card:active{transform:scale(.98);}
+  .ronaldo-hero svg{width:100%; height:100%; display:block;}
+  .ronaldo-story{
+    font-family:var(--font-kid-body); font-weight:700; font-size:16px; line-height:1.45;
+    margin-bottom:16px; color:var(--w-ink);
+  }
+  .ronaldo-explain{margin-top:16px; text-align:left; background:rgba(255,255,255,.08); border-radius:16px; padding:14px 16px;}
+  .ronaldo-verdict{font-family:var(--font-kid-display); font-weight:800; font-size:17px; margin-bottom:8px; text-align:center;}
+  .ronaldo-verdict.rv-ok{color:var(--w-accent-2);}
+  .ronaldo-verdict.rv-bad{color:#FF9C97;}
+  .ronaldo-explain-text{font-size:14px; color:var(--w-soft); line-height:1.55;}
+
+  .feedback-overlay{
+    position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+    background:rgba(10,8,16,.55); padding:20px;
+  }
+  .feedback-card{
+    background:var(--w-card); color:var(--w-ink); border-radius:24px; padding:32px 26px; text-align:center; max-width:340px; width:100%;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
+  }
+  .feedback-mascot-row{display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; text-align:left; position:relative;}
+  .feedback-mascot{width:60px; height:60px; flex:none; position:relative;}
+  .feedback-mascot svg{width:100%; height:100%; display:block;}
+  .feedback-mascot.fm-happy svg{animation:fmHappy .6s ease;}
+  .feedback-mascot.fm-sad svg{animation:fmSad .5s ease;}
+  .fm-spark{position:absolute; left:50%; top:50%; font-size:14px; pointer-events:none; animation:sparkOut .7s ease-out forwards;}
+  .feedback-bubble{position:relative; background:rgba(255,255,255,.14); border-radius:4px 16px 16px 16px; padding:11px 14px; flex:1;}
+  .feedback-line{font-family:var(--font-kid-display); font-weight:800; font-size:17.5px; color:var(--w-ink); line-height:1.25;}
+  .feedback-equation{
+    font-family:var(--font-kid-display); font-weight:800; font-size:30px; color:var(--w-ink);
+    background:rgba(255,255,255,.14); border:2px solid rgba(255,255,255,.22); border-radius:14px;
+    padding:10px 18px; display:inline-block; margin-bottom:10px; letter-spacing:.02em;
+  }
+  .feedback-teach{background:rgba(255,255,255,.08); border-radius:16px; padding:14px 12px 12px; margin:2px 0 12px; text-align:center;}
+  .feedback-teach-label{font-size:12.5px; font-weight:800; color:var(--w-ink); margin-bottom:8px;}
+  .feedback-teach-grid{display:inline-grid; gap:2px; margin:0 auto 10px;}
+  .fg-cell{border-radius:2px; background:var(--w-accent);}
+  .feedback-teach-tip{font-size:12.5px; color:var(--w-soft); line-height:1.45;}
+  .feedback-xp{display:inline-block; background:rgba(255,255,255,.14); color:var(--w-ink); border-radius:999px; padding:6px 14px; font-weight:800; font-size:13px; margin-bottom:16px;}
+  .feedback-sequence{display:flex; flex-direction:column; gap:6px; margin:4px 0 12px; text-align:left;}
+  .fs-row{font-family:var(--font-kid-display); font-weight:800; font-size:14.5px; background:rgba(255,255,255,.08); border-radius:10px; padding:7px 12px; display:flex; justify-content:space-between; gap:10px;}
+  .fs-row.fs-ok{color:var(--w-accent-2);}
+  .fs-row.fs-bad{color:#FF9C97;}
+
+  .pop-correct{animation:popScale .35s ease;}
+  .pop-wrong{animation:shakeX .4s;}
+  @keyframes popScale{0%{transform:scale(.85);opacity:0;}60%{transform:scale(1.04);opacity:1;}100%{transform:scale(1);}}
+  @media (prefers-reduced-motion: reduce){ .pop-correct{animation:none;} }
+
+  .summary-stars{font-size:44px; letter-spacing:6px; margin:10px 0 4px; text-align:center;}
+  .summary-stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0;}
+  .summary-stat{background:rgba(255,255,255,.08); border-radius:14px; padding:12px; text-align:center;}
+  .summary-stat-val{font-family:var(--font-kid-display); font-weight:800; font-size:20px;}
+  .summary-stat-lbl{font-size:11px; color:var(--w-soft); text-transform:uppercase; letter-spacing:.03em; margin-top:2px;}
+  .confetti-wrap{position:absolute; inset:0; overflow:hidden; pointer-events:none; border-radius:22px;}
+  .confetti-piece{position:absolute; top:-10px; width:8px; height:14px; border-radius:2px; animation:fall linear forwards;}
+  @keyframes fall{ to{ transform:translateY(340px) rotate(260deg); opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .confetti-piece{display:none;} }
+
+  .done-badge-row{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:10px;}
+  .done-badge{background:rgba(255,255,255,.14); border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:800;}
+  .summary-levelresult{text-align:center; margin:2px 0 8px;}
+  .prize-reveal{display:inline-flex; align-items:center; gap:9px; background:rgba(255,255,255,.16); border-radius:999px; padding:9px 18px; font-weight:800; font-size:14px; animation:trophyDrop .5s ease-out;}
+  .prize-reveal .pr-emoji{font-size:24px;}
+  .level-fail-note{font-size:13.5px; color:var(--w-soft); margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="loading">
+    <div class="spinner" role="status" aria-label="Загрузка"></div>
+    <div>МаркМатика загружается…</div>
+  </div>
+
+  <!-- ================= FIRST-RUN SETUP ================= -->
+  <section id="screen-setup" hidden>
+    <div class="center-wrap">
+      <div class="setup-shell">
+        <div class="card">
+          <div class="brand-row">
+            <div class="brand-mark">🧮</div>
+            <div class="brand-name app-logo">МаркМатика</div>
+          </div>
+          <h2 class="role-title">Первая настройка</h2>
+          <p class="role-sub soft">Это займёт минуту. Дальше сайт сам будет выдавать новые задания каждый день.</p>
+          <div class="setup-steps">
+            <div>
+              <label class="field-label">Имя ребёнка</label>
+              <input class="text-input" id="setup-name" value="Марк" maxlength="20">
+            </div>
+            <div>
+              <label class="field-label">С какого дня считать неделю 1</label>
+              <input class="date-input" type="date" id="setup-startdate">
+            </div>
+            <div>
+              <label class="field-label">Заданий в день</label>
+              <div class="stepper">
+                <button type="button" id="setup-count-minus">−</button>
+                <output id="setup-count-out">14</output>
+                <button type="button" id="setup-count-plus">+</button>
+                <span class="soft" style="font-size:13px;">≈ 10 минут</span>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">PIN-код родителя (4 цифры) — чтобы Марк не зашёл в вашу статистику</label>
+              <div class="setup-row">
+                <div>
+                  <input class="text-input tabular" id="setup-pin1" inputmode="numeric" maxlength="4" placeholder="0000">
+                </div>
+                <div>
+                  <input class="text-input tabular" id="setup-pin2" inputmode="numeric" maxlength="4" placeholder="Повторите">
+                </div>
+              </div>
+              <div id="setup-pin-err" class="critical" style="color:var(--critical); font-size:12.5px; margin-top:6px;" hidden>PIN должен состоять из 4 цифр и совпадать в обоих полях.</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="setup-submit" style="width:100%;">Готово, создать сайт →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ROLE PICKER ================= -->
+  <section id="screen-role" hidden>
+    <div class="center-wrap">
+      <div class="role-shell">
+        <div class="card">
+          <div class="brand-row">
+            <div class="brand-mark">🧮</div>
+            <div class="brand-name app-logo">МаркМатика</div>
+          </div>
+          <h2 class="role-title">Кто сейчас за компьютером?</h2>
+          <p class="role-sub soft">Выбери, чтобы попасть в свой раздел</p>
+          <div class="role-options">
+            <button class="role-btn" id="role-child">
+              <span class="role-emoji">🚀</span>
+              <span>
+                <span class="role-btn-title" id="role-child-label">Я — Марк</span>
+                <div class="role-btn-sub">Сегодняшнее задание и мои миры</div>
+              </span>
+            </button>
+            <button class="role-btn" id="role-parent">
+              <span class="role-emoji">🔒</span>
+              <span>
+                <span class="role-btn-title">Я — родитель</span>
+                <div class="role-btn-sub">Прогресс, статистика, настройки</div>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PIN GATE ================= -->
+  <section id="screen-pin" hidden>
+    <div class="center-wrap">
+      <div class="pin-shell">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:34px; margin-bottom:6px;">🔒</div>
+          <h2 class="role-title" style="margin-bottom:4px;">Родительский PIN</h2>
+          <p class="soft" style="margin-bottom:4px;">Введите 4-значный код</p>
+          <div class="pin-dots" id="pin-dots">
+            <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+          </div>
+          <div class="pinpad" id="pinpad">
+            <button data-d="1">1</button><button data-d="2">2</button><button data-d="3">3</button>
+            <button data-d="4">4</button><button data-d="5">5</button><button data-d="6">6</button>
+            <button data-d="7">7</button><button data-d="8">8</button><button data-d="9">9</button>
+            <button class="pp-empty" tabindex="-1"></button><button data-d="0">0</button><button id="pin-back">⌫</button>
+          </div>
+          <div style="margin-top:16px;"><a class="linklike" id="pin-cancel">← Назад</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHILD: WORLD SELECT ================= -->
+  <section id="screen-world" hidden>
+    <div class="kidzone" data-world="cube" id="world-kidzone">
+      <div class="kid-pattern"></div>
+      <div class="kid-inner">
+        <div class="kid-topbar">
+          <button class="kid-back" id="world-back">←</button>
+          <span class="kid-pill">✨ <span id="world-greet">Привет, Марк!</span></span>
+          <span style="width:38px;"></span>
+        </div>
+        <div style="text-align:center; margin:10px 0 4px;">
+          <div style="font-size:15px; opacity:.85;">Выбери мир для сегодняшней тренировки</div>
+        </div>
+        <div class="world-grid" id="world-grid">
+          <button class="world-card wc-cube" data-world="cube">
+            <div class="we"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#0F2E28"/><line x1="50" y1="20" x2="50" y2="10" stroke="#F5D90A" stroke-width="4" stroke-linecap="round"/><circle cx="50" cy="8" r="5" fill="#F5D90A"/><rect x="30" y="20" width="40" height="30" rx="8" fill="#5EEAD4"/><rect x="38" y="30" width="9" height="11" rx="2" fill="#0F2E28"/><rect x="53" y="30" width="9" height="11" rx="2" fill="#0F2E28"/><rect x="26" y="52" width="48" height="34" rx="12" fill="#1E5347"/><rect x="41" y="60" width="18" height="18" rx="4" fill="#F5D90A"/><rect x="12" y="56" width="14" height="24" rx="6" fill="#5EEAD4"/><rect x="74" y="56" width="14" height="24" rx="6" fill="#5EEAD4"/><rect x="35" y="84" width="12" height="14" rx="4" fill="#0F2E28"/><rect x="53" y="84" width="12" height="14" rx="4" fill="#0F2E28"/></svg></div>
+            <div class="wt">Мир Кубов</div>
+            <div class="ws">Строй башню правильными ответами</div>
+            <div class="wp" id="wp-cube"></div>
+          </button>
+          <button class="world-card wc-arena" data-world="arena">
+            <div class="we"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#093016"/><circle cx="46" cy="22" r="10" fill="#3DDC64"/><rect x="40" y="32" width="14" height="24" rx="6" fill="#3DDC64" transform="rotate(-6 47 44)"/><rect x="26" y="30" width="9" height="20" rx="4" fill="#3DDC64" transform="rotate(-45 30 32)"/><rect x="55" y="34" width="9" height="16" rx="4" fill="#3DDC64" transform="rotate(25 59 36)"/><rect x="30" y="54" width="10" height="26" rx="5" fill="#3DDC64" transform="rotate(8 35 56)"/><path d="M52 52 L80 64 L75 74 L48 62 Z" fill="#3DDC64"/><circle cx="84" cy="70" r="8" fill="#FFD23F"/><path d="M84 64 L86 68 L84 72 L81 68 Z" fill="#093016"/><path d="M64 78 Q72 76 79 80" stroke="#FFD23F" stroke-width="2" fill="none" opacity=".6"/><path d="M60 84 Q70 83 78 87" stroke="#FFD23F" stroke-width="2" fill="none" opacity=".4"/></svg></div>
+            <div class="wt">Футбольная Арена</div>
+            <div class="ws">Забивай голы таблицей умножения</div>
+            <div class="wp" id="wp-arena"></div>
+          </button>
+          <button class="world-card wc-hunter" data-world="hunter">
+            <div class="we"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#160B28"/><path d="M50 30 C28 40 22 68 33 92 L50 76 L67 92 C78 68 72 40 50 30 Z" fill="#B892FF" opacity=".92"/><circle cx="50" cy="28" r="11" fill="#FF5B4C"/><path d="M39 22 Q50 10 61 22 Q56 18 50 18 Q44 18 39 22Z" fill="#160B28"/><rect x="42" y="38" width="16" height="26" rx="6" fill="#FF5B4C"/><rect x="60" y="30" width="8" height="20" rx="3" fill="#FF5B4C" transform="rotate(-40 64 34)"/><rect x="70" y="6" width="6" height="34" rx="2" fill="#F5EEFF" transform="rotate(-24 73 20)"/><rect x="66" y="34" width="10" height="6" rx="2" fill="#B892FF" transform="rotate(-24 71 37)"/><rect x="44" y="66" width="9" height="20" rx="3" fill="#160B28"/><rect x="55" y="66" width="9" height="20" rx="3" fill="#160B28"/></svg></div>
+            <div class="wt">Охота на Демонов</div>
+            <div class="ws">Побеждай демонов верными ответами</div>
+            <div class="wp" id="wp-hunter"></div>
+          </button>
+          <button class="world-card wc-studio" data-world="studio">
+            <div class="we"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#2E0A21"/><path d="M36 30 A14 14 0 0 1 64 30" stroke="#FFD84D" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="31" y="28" width="7" height="13" rx="3" fill="#FFD84D"/><rect x="62" y="28" width="7" height="13" rx="3" fill="#FFD84D"/><circle cx="50" cy="32" r="13" fill="#FF7A45"/><rect x="36" y="48" width="28" height="30" rx="11" fill="#FF7A45"/><rect x="63" y="50" width="8" height="18" rx="3" fill="#FF7A45" transform="rotate(-18 67 52)"/><rect x="70" y="32" width="14" height="22" rx="3" fill="#FFD84D"/><path d="M75 38 L75 48 L82 43 Z" fill="#2E0A21"/><path d="M22 20 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="#FFD84D"/><rect x="38" y="80" width="9" height="14" rx="3" fill="#2E0A21"/><rect x="53" y="80" width="9" height="14" rx="3" fill="#2E0A21"/></svg></div>
+            <div class="wt">Своя Студия</div>
+            <div class="ws">Набирай подписчиков и лайки</div>
+            <div class="wp" id="wp-studio"></div>
+          </button>
+        </div>
+        <button class="kid-card bonus-card" id="ronaldo-entry" style="margin-top:14px; width:100%; text-align:left; border:none; cursor:pointer;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-size:34px; line-height:1;">⚽📐</div>
+            <div style="flex:1;">
+              <div style="font-family:var(--font-kid-display); font-weight:800; font-size:16px;">Задачи с Роналду</div>
+              <div class="ws" style="opacity:.85; font-size:12.5px;">Считай голы по матчам и слушай объяснение</div>
+            </div>
+            <div style="font-size:20px; opacity:.7;">→</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHILD: RONALDO WORD PROBLEMS ================= -->
+  <section id="screen-ronaldo" hidden>
+    <div class="kidzone" data-world="arena" id="ronaldo-kidzone">
+      <div class="kid-pattern"></div>
+      <div class="kid-inner">
+        <div class="kid-topbar">
+          <button class="kid-back" id="ronaldo-back">←</button>
+          <span class="kid-pill">⚽ <span id="ronaldo-solved">0</span> решено</span>
+          <span class="kid-pill">⭐ <span id="ronaldo-xp">0</span></span>
+        </div>
+        <div class="kid-card" style="margin-top:16px; text-align:center;">
+          <div class="ronaldo-hero" id="ronaldo-hero" style="width:64px; height:64px; margin:0 auto 10px;"></div>
+          <div class="ronaldo-story" id="ronaldo-story">Криштиану Роналду забил всего 10 голов...</div>
+          <div class="quiz-answer-box" id="ronaldo-answer-box" style="max-width:160px; margin:0 auto 16px;">&nbsp;</div>
+          <div class="keypad" id="ronaldo-keypad">
+            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+            <button class="kp-clear" data-k="back">⌫</button><button data-k="0">0</button><button class="kp-check" data-k="ok">✓</button>
+          </div>
+          <div class="ronaldo-explain" id="ronaldo-explain" hidden>
+            <div class="ronaldo-verdict" id="ronaldo-verdict">Верно!</div>
+            <div class="ronaldo-explain-text" id="ronaldo-explain-text"></div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <button class="kid-btn secondary" id="ronaldo-speak" style="flex:1;">🔊 Слушать</button>
+              <button class="kid-btn" id="ronaldo-next" style="flex:1;">Дальше →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHILD: LEVEL PATH ================= -->
+  <section id="screen-levelpath" hidden>
+    <div class="kidzone" id="levelpath-kidzone">
+      <div class="kid-pattern"></div>
+      <div class="kid-inner">
+        <div class="kid-topbar">
+          <button class="kid-back" id="levelpath-back">←</button>
+          <span class="kid-pill" id="levelpath-worldname">Мир</span>
+          <span class="kid-pill">⭐ <span id="levelpath-xp">0</span></span>
+        </div>
+        <div class="trophy-row" id="levelpath-trophies"></div>
+        <div class="level-path" id="level-path-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHILD: MISSION ================= -->
+  <section id="screen-mission" hidden>
+    <div class="kidzone" id="mission-kidzone">
+      <div class="kid-pattern"></div>
+      <div class="kid-inner">
+        <div class="kid-topbar">
+          <button class="kid-back" id="mission-back">←</button>
+          <span class="kid-pill">🔥 <span id="mission-streak">0</span> дней подряд</span>
+          <span class="kid-pill">⭐ <span id="mission-xp">0</span></span>
+        </div>
+        <div class="kid-card" style="margin-top:18px;">
+          <div style="text-align:center;">
+            <span class="mission-stage" id="mission-stage-label">Неделя 1</span>
+          </div>
+          <div class="mission-hero" id="mission-hero"></div>
+          <div class="mission-title" id="mission-title">Сегодняшнее задание</div>
+          <div class="mission-sub" id="mission-sub">Таблица умножения на 1, 2 и 10</div>
+          <div class="mission-count">
+            <div class="mission-count-item">
+              <div class="mission-count-num" id="mission-count-num">14</div>
+              <div class="mission-count-lbl">примеров</div>
+            </div>
+            <div class="mission-count-item">
+              <div class="mission-count-num" id="mission-count-min">~10</div>
+              <div class="mission-count-lbl">минут</div>
+            </div>
+          </div>
+          <button class="kid-btn" id="mission-start" style="width:100%; margin-top:6px;">Играть! →</button>
+        </div>
+        <div id="mission-already" hidden style="margin-top:14px; text-align:center;">
+          <p style="opacity:.85; font-size:14px;" id="mission-already-text">Это повторное прохождение — опыт и очки начислим, но приз за уровень уже получен.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CHILD: QUIZ ================= -->
+  <section id="screen-quiz" hidden>
+    <div class="kidzone" id="quiz-kidzone">
+      <div class="kid-pattern"></div>
+      <div class="kid-inner">
+        <div class="kid-topbar">
+          <button class="kid-back" id="quiz-exit">✕</button>
+          <div class="progress-dots" id="quiz-dots"></div>
+          <span class="kid-pill">⭐ <span id="quiz-xp">0</span></span>
+        </div>
+        <div class="kid-card quiz-card">
+          <div class="quiz-commute-ref" id="quiz-commute-ref" hidden></div>
+          <div class="quiz-eq" id="quiz-eq">6 × 7 = ?</div>
+          <div class="quiz-answer-box" id="quiz-answer-box">&nbsp;</div>
+          <div class="quiz-choices" id="quiz-choices" hidden></div>
+          <div class="quiz-sequence" id="quiz-sequence" hidden></div>
+          <div class="keypad" id="quiz-keypad">
+            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+            <button class="kp-clear" data-k="back">⌫</button><button data-k="0">0</button><button class="kp-check" data-k="ok">✓</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- feedback overlay lives outside quiz card, toggled via JS -->
+  <div id="feedback-overlay" class="feedback-overlay" hidden>
+    <div class="feedback-card" id="feedback-card">
+      <div class="feedback-mascot-row">
+        <div class="feedback-mascot" id="feedback-mascot"></div>
+        <div class="feedback-bubble"><div class="feedback-line" id="feedback-line">ГОЛ!!!</div></div>
+      </div>
+      <div class="feedback-equation" id="feedback-equation">6 × 7 = 42</div>
+      <div class="feedback-sequence" id="feedback-sequence" hidden></div>
+      <div class="feedback-teach" id="feedback-teach" hidden>
+        <div class="feedback-teach-label" id="feedback-teach-label">Давай разберёмся 👇</div>
+        <div class="feedback-teach-grid" id="feedback-teach-grid"></div>
+        <div class="feedback-teach-tip" id="feedback-teach-tip"></div>
+      </div>
+      <div class="feedback-xp" id="feedback-xp">+10 очков</div>
+      <br>
+      <button class="kid-btn" id="feedback-next" style="width:100%;">Дальше →</button>
+    </div>
+  </div>
+
+  <!-- ================= CHILD: SUMMARY ================= -->
+  <section id="screen-summary" hidden>
+    <div class="kidzone" id="summary-kidzone">
+      <div class="kid-pattern"></div>
+      <div class="kid-inner">
+        <div class="kid-card" style="margin-top:40px; position:relative;">
+          <div class="confetti-wrap" id="confetti-wrap"></div>
+          <div class="summary-mascot" id="summary-mascot"></div>
+          <div style="text-align:center; font-size:15px; opacity:.85;" id="summary-eyebrow">Миссия завершена!</div>
+          <div class="summary-stars" id="summary-stars">⭐⭐⭐</div>
+          <div style="text-align:center; font-family:var(--font-kid-display); font-weight:800; font-size:20px;" id="summary-title">Отличная работа, Марк!</div>
+          <div class="summary-levelresult" id="summary-levelresult"></div>
+          <div class="summary-stat-grid">
+            <div class="summary-stat"><div class="summary-stat-val" id="summary-correct">12/14</div><div class="summary-stat-lbl">Верно</div></div>
+            <div class="summary-stat"><div class="summary-stat-val" id="summary-xpgain">+120</div><div class="summary-stat-lbl">Очков</div></div>
+            <div class="summary-stat"><div class="summary-stat-val" id="summary-streak">🔥5</div><div class="summary-stat-lbl">Серия дней</div></div>
+          </div>
+          <div id="summary-badges" class="done-badge-row"></div>
+          <button class="kid-btn secondary" id="summary-share" style="width:100%; margin-top:20px;">📤 Поделиться с родителем</button>
+          <button class="kid-btn" id="summary-primary" style="width:100%; margin-top:10px;">Играть дальше →</button>
+          <button class="kid-btn secondary" id="summary-home" style="width:100%; margin-top:10px;">На главную</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PARENT: DASHBOARD ================= -->
+  <section id="screen-parent" hidden>
+    <div class="parent-wrap">
+      <div class="parent-topbar">
+        <div class="parent-title">
+          <div class="brand-mark">🧮</div>
+          <div>
+            <h1 id="parent-childname">Прогресс Марка</h1>
+            <div class="soft" style="font-size:13px;" id="parent-stage-line">Неделя 1 · Разминка</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" id="parent-settings-btn">⚙️ Настройки</button>
+          <button class="btn btn-ghost" id="parent-logout">Выйти</button>
+        </div>
+      </div>
+      <p class="soft" style="font-size:12.5px; margin:-10px 0 18px;">Прогресс хранится в этом браузере. Если Марк занимается на другом устройстве, попросите его прислать отчёт кнопкой «Поделиться» в конце занятия.</p>
+
+      <div class="stat-grid">
+        <div class="card stat-tile"><span class="stat-label">Серия дней</span><span class="stat-value" id="stat-streak">0 🔥</span><span class="stat-sub">подряд без пропусков</span></div>
+        <div class="card stat-tile"><span class="stat-label">Всего очков</span><span class="stat-value" id="stat-xp">0</span><span class="stat-sub">за всё время</span></div>
+        <div class="card stat-tile"><span class="stat-label">Точность (первая попытка)</span><span class="stat-value" id="stat-accuracy">—</span><span class="stat-sub">по всем таблицам</span></div>
+        <div class="card stat-tile"><span class="stat-label">Дней пройдено</span><span class="stat-value" id="stat-days">0</span><span class="stat-sub">за последние 5 недель</span></div>
+      </div>
+
+      <div class="card section-card">
+        <div class="section-head">
+          <h2>Календарь занятий</h2>
+          <div class="legend-row">
+            <span class="legend-chip"><span class="legend-swatch" style="background:var(--seq-0); border:1px solid var(--line);"></span>нет занятия</span>
+            <span class="legend-chip"><span class="legend-swatch" style="background:var(--seq-2);"></span>слабо</span>
+            <span class="legend-chip"><span class="legend-swatch" style="background:var(--seq-5);"></span>отлично</span>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-weekdays"></div>
+        <div class="cal-grid" id="cal-grid" style="margin-top:4px;"></div>
+      </div>
+
+      <div class="card section-card">
+        <div class="section-head">
+          <h2>Таблицы, где нужна помощь</h2>
+          <span class="soft" style="font-size:12.5px;">точность первой попытки по каждой таблице</span>
+        </div>
+        <div class="table-bars" id="table-bars"></div>
+      </div>
+
+      <div class="card section-card">
+        <div class="section-head"><h2>Прогресс по мирам</h2><span class="soft" style="font-size:12.5px;">уровни и полученные призы</span></div>
+        <div class="badge-row" id="world-progress-row" style="flex-direction:column; align-items:stretch; gap:10px;"></div>
+      </div>
+
+      <div class="card section-card">
+        <div class="section-head"><h2>Достижения</h2></div>
+        <div class="badge-row" id="badge-row"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PARENT: SETTINGS ================= -->
+  <section id="screen-settings" hidden>
+    <div class="parent-wrap" style="max-width:520px;">
+      <div class="parent-topbar">
+        <div class="parent-title"><h1 style="font-size:19px;">Настройки</h1></div>
+        <button class="btn btn-ghost" id="settings-back">← К прогрессу</button>
+      </div>
+      <div class="card section-card">
+        <div class="settings-grid">
+          <div>
+            <label class="field-label">Имя ребёнка</label>
+            <input class="text-input" id="set-name">
+          </div>
+          <div>
+            <label class="field-label">Начало недели 1 (влияет на то, какие таблицы изучаются сейчас)</label>
+            <input class="date-input" type="date" id="set-startdate">
+          </div>
+          <div>
+            <label class="field-label">Заданий в день</label>
+            <div class="stepper">
+              <button type="button" id="set-count-minus">−</button>
+              <output id="set-count-out">14</output>
+              <button type="button" id="set-count-plus">+</button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Новый PIN (оставьте пустым, чтобы не менять)</label>
+            <div class="setup-row">
+              <input class="text-input tabular" id="set-pin1" inputmode="numeric" maxlength="4" placeholder="0000">
+              <input class="text-input tabular" id="set-pin2" inputmode="numeric" maxlength="4" placeholder="Повторите">
+            </div>
+          </div>
+          <button class="btn btn-primary" id="settings-save">Сохранить</button>
+          <div id="settings-msg" class="soft" style="font-size:13px;" hidden></div>
+        </div>
+      </div>
+      <div class="card section-card danger-box">
+        <b style="color:var(--critical);">Опасная зона</b>
+        <span class="soft" style="font-size:13px;">Полностью обнулить прогресс: очки, серию, статистику по таблицам и всю историю дней. Это нельзя отменить.</span>
+        <button class="btn btn-danger" id="settings-reset">Сбросить весь прогресс</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================== CONFIG / CONSTANTS ===================== */
+  var WEEK_STAGES = [
+    {tables:[1,2,10], title:"Неделя 1 · Разминка", sub:"Таблица умножения на 1, 2 и 10", hero:"🌱"},
+    {tables:[3,4,5],  title:"Неделя 2 · Тройки-пятёрки", sub:"Таблица умножения на 3, 4 и 5", hero:"🌿"},
+    {tables:[6,7],    title:"Неделя 3 · Шестёрки и семёрки", sub:"Таблица умножения на 6 и 7", hero:"🌳"},
+    {tables:[8,9],    title:"Неделя 4 · Восьмёрки и девятки", sub:"Таблица умножения на 8 и 9", hero:"🔥"}
+  ];
+  var ALL_TABLES=[1,2,3,4,5,6,7,8,9,10];
+
+  var WORLDS = {
+    cube:   {name:"Мир Кубов", emoji:"🧊", correctEmoji:"🧊",
+      correctLines:["Кубик добыт!","Блок на месте!","Башня растёт!","Ещё один этаж готов!","Идеальная кладка!","Прочный блок!","Стройка идёт по плану!","Новый уровень открыт!","Точный расчёт, инженер!","Конструкция держится отлично!","Ты строишь как профи!","Ровно и красиво!"],
+      wrongLines:["Кубик рассыпался…","Блок не встал на место.","Стройка чуть покосилась.","Нужно поправить расчёт.","Строительный кран промахнулся.","Этот блок пока не подходит."]},
+    arena:  {name:"Футбольная Арена", emoji:"⚽", correctEmoji:"🥅",
+      correctLines:["ГОООЛ!!!","Точно в девятку!","Красивый удар!","Дубль! Ты в ударе!","Вратарь даже не шелохнулся!","Хет-трик уже близко!","Мяч влетает точно в сетку!","Такой гол попадёт в топ-10!","Комментаторы в восторге!","Трибуны скандируют твоё имя!","Удар как у настоящего форварда!","Гол мечты!"],
+      wrongLines:["Мимо ворот…","Вратарь поймал!","Штанга — совсем чуть-чуть!","Судья фиксирует офсайд.","Мяч ушёл за пределы поля.","Не в этот раз, но атака была хорошей."]},
+    hunter: {name:"Охота на Демонов", emoji:"⚔️", correctEmoji:"👹",
+      correctLines:["Демон повержен!","Точный удар!","Враг сражён!","Клинок не подвёл!","Тень рассеялась!","Ты быстрее демона!","Меч сверкнул точно в цель!","Ещё один демон побеждён!","Портал закрыт!","Ты на шаг ближе к победе!","Реакция охотника — на высоте!","Чистая победа!"],
+      wrongLines:["Демон увернулся…","Промах, соберись!","Клинок скользнул мимо.","Демон исчез в тени.","Нужно бить точнее.","Почти достал — но не в этот раз."]},
+    studio: {name:"Своя Студия", emoji:"🎥", correctEmoji:"🎉",
+      correctLines:["ОГОНЬ, красавчик! 🔥","+1000 подписчиков!","Хайп зашкаливает!","Топ, все в шоке от скорости!","Видео взлетело в тренды!","Комментарии просто взрываются!","Это будет вирусным!","Твой контент — бомба!","Лайки сыплются один за другим!","Канал растёт на глазах!","Алгоритмы тебя обожают!","Ты снова в трендах!"],
+      wrongLines:["Дизлайк… но камбэк рядом!","Стрим лагнул — погнали заново!","Видео не зашло — бывает.","Заминка в кадре, но не страшно.","Нужен ещё один дубль.","Микрофон подвёл, но идея огонь."]}
+  };
+
+  var LEVEL_PASS_RATIO = 0.6;
+  var LEVEL_LENGTH_DEFAULT = 8;
+  var LEVEL_LENGTH_BOSS = 10;
+
+  var LEVEL_DEFS = {
+    arena: [
+      {name:"1/64 финала", sub:"Первый матч турнира", narrative:"Ты выходишь на поле в стартовом раунде Кубка. Забивай голы правильными ответами!", prizeEmoji:"🥉", prizeLabel:"Билет в 1/32 финала"},
+      {name:"1/32 финала", sub:"Соперник посильнее", narrative:"Трибуны заполняются — играем дальше!", prizeEmoji:"🥉", prizeLabel:"Билет в 1/16 финала"},
+      {name:"1/16 финала", sub:"Игра на большом стадионе", narrative:"Судьи уже на поле, начинаем!", prizeEmoji:"🥈", prizeLabel:"Билет в 1/8 финала"},
+      {name:"1/8 финала", sub:"Начался плей-офф", narrative:"Ошибаться нельзя — играем на вылет!", prizeEmoji:"🥈", prizeLabel:"Билет в четвертьфинал"},
+      {name:"Четвертьфинал", sub:"Ты в топ-8 команд", narrative:"Это уже настоящий турнир!", prizeEmoji:"🏅", prizeLabel:"Билет в полуфинал"},
+      {name:"Полуфинал", sub:"Шаг до финала", narrative:"Вся страна следит за этим матчем!", prizeEmoji:"🏅", prizeLabel:"Билет в финал"},
+      {name:"Финал Кубка", sub:"Решающий матч сезона", narrative:"Один матч решает всё! Соберись!", prizeEmoji:"🏆", prizeLabel:"Кубок чемпиона", isBoss:true},
+      {name:"Чемпион Кубка!", sub:"Ты поднял трофей", narrative:"Но впереди уже новый турнир — Лига Чемпионов!", prizeEmoji:"👑", prizeLabel:"Капитанская повязка"}
+    ],
+    cube: [
+      {name:"Фундамент", sub:"Закладываем основание", narrative:"Каждая стройка начинается с прочного фундамента.", prizeEmoji:"🧱", prizeLabel:"Набор блоков"},
+      {name:"1 этаж", sub:"Первый уровень готов", narrative:"", prizeEmoji:"🪟", prizeLabel:"Стеклянные окна"},
+      {name:"2 этаж", sub:"Стройка идёт быстро", narrative:"", prizeEmoji:"💡", prizeLabel:"Неоновые огни"},
+      {name:"3 этаж", sub:"Уже выше деревьев", narrative:"", prizeEmoji:"🪜", prizeLabel:"Крутая лестница"},
+      {name:"4 этаж", sub:"Половина пути", narrative:"", prizeEmoji:"🔭", prizeLabel:"Смотровая площадка"},
+      {name:"5 этаж", sub:"Почти на вершине", narrative:"", prizeEmoji:"🚩", prizeLabel:"Флаг на крыше"},
+      {name:"Крыша", sub:"Финальный этаж", narrative:"Последний рывок — и башня готова!", prizeEmoji:"📡", prizeLabel:"Золотая антенна", isBoss:true},
+      {name:"Небоскрёб готов!", sub:"Твоя башня — самая высокая", narrative:"Пора строить целый квартал!", prizeEmoji:"🏙️", prizeLabel:"Ключи от квартала"}
+    ],
+    hunter: [
+      {name:"Разведка леса", sub:"Первые шаги охотника", narrative:"Тёмный лес скрывает демонов — будь внимателен.", prizeEmoji:"🗺️", prizeLabel:"Карта леса"},
+      {name:"Первая ловушка", sub:"Учимся выслеживать", narrative:"", prizeEmoji:"🪤", prizeLabel:"Тренировочный клинок"},
+      {name:"Слабый демон", sub:"Первая настоящая схватка", narrative:"", prizeEmoji:"🗡️", prizeLabel:"Заточенный меч"},
+      {name:"Тайный портал", sub:"Что-то приближается…", narrative:"", prizeEmoji:"🌀", prizeLabel:"Амулет защиты"},
+      {name:"Сильный демон", sub:"Он сильнее прежних", narrative:"", prizeEmoji:"🛡️", prizeLabel:"Крепкий щит"},
+      {name:"Логово теней", sub:"Путь к боссу подземелья", narrative:"", prizeEmoji:"🕯️", prizeLabel:"Факел храбрости"},
+      {name:"Босс подземелья", sub:"Финальная битва", narrative:"Соберись — это самый сильный демон!", prizeEmoji:"👹", prizeLabel:"Клинок легенды", isBoss:true},
+      {name:"Легендарный охотник", sub:"Ты победил тьму", narrative:"Но за горами — новое подземелье…", prizeEmoji:"⚔️", prizeLabel:"Плащ героя"}
+    ],
+    studio: [
+      {name:"Первое видео", sub:"Начало пути блогера", narrative:"Каждый большой канал начинается с одного видео.", prizeEmoji:"🎬", prizeLabel:"Своя камера"},
+      {name:"100 подписчиков", sub:"Первые фанаты", narrative:"", prizeEmoji:"👥", prizeLabel:"Крутой микрофон"},
+      {name:"1 000 подписчиков", sub:"Канал растёт", narrative:"", prizeEmoji:"📈", prizeLabel:"Кольцевой свет"},
+      {name:"Вирусный ролик", sub:"Видео взлетело в тренды", narrative:"", prizeEmoji:"🔥", prizeLabel:"Значок тренда"},
+      {name:"10 000 подписчиков", sub:"Уже почти звезда", narrative:"", prizeEmoji:"⭐", prizeLabel:"Золотая кнопка"},
+      {name:"Коллаб со звездой", sub:"Совместное видео", narrative:"", prizeEmoji:"🤝", prizeLabel:"VIP-пропуск"},
+      {name:"100 000 подписчиков", sub:"Финальный рывок сезона", narrative:"Ты почти на вершине!", prizeEmoji:"💎", prizeLabel:"Бриллиантовая кнопка", isBoss:true},
+      {name:"Топ блогер года!", sub:"Ты — звезда платформы", narrative:"Начинаем второй сезон канала!", prizeEmoji:"🏆", prizeLabel:"Награда года"}
+    ]
+  };
+  var LEVEL_CONT = {
+    arena:  {prefix:"Лига Чемпионов · Раунд", prizeEmoji:"⭐", prizeLabel:"Медаль раунда"},
+    cube:   {prefix:"Новый квартал · Этаж", prizeEmoji:"🧊", prizeLabel:"Блок-приз"},
+    hunter: {prefix:"Новое подземелье · Уровень", prizeEmoji:"🔥", prizeLabel:"Трофей охотника"},
+    studio: {prefix:"Сезон 2 · Видео", prizeEmoji:"🎥", prizeLabel:"Новый рекорд"}
+  };
+  function getLevelDef(world, idx){
+    var defs=LEVEL_DEFS[world];
+    var d;
+    if(idx < defs.length){ d=Object.assign({}, defs[idx]); }
+    else {
+      var cont=LEVEL_CONT[world];
+      var n = idx - defs.length + 1;
+      var isBoss = (n % 5)===0;
+      d = {name:cont.prefix+" "+n, sub:isBoss?"Особо сложный раунд":"Продолжаем тренировку", narrative:"", prizeEmoji:cont.prizeEmoji, prizeLabel:cont.prizeLabel+" "+n, isBoss:isBoss};
+    }
+    d.index=idx;
+    d.questions = d.isBoss ? LEVEL_LENGTH_BOSS : LEVEL_LENGTH_DEFAULT;
+    return d;
+  }
+  function levelBadgeContent(world, idx, status){
+    if(status==="done") return "✔";
+    if(status==="locked") return "🔒";
+    var d=getLevelDef(world, idx);
+    return d.isBoss ? "👑" : String(idx+1);
+  }
+
+  function normalizeProfile(p){
+    p = p || {};
+    if(typeof p.totalXP!=="number") p.totalXP=0;
+    if(typeof p.streak!=="number") p.streak=0;
+    if(p.lastCompletedDate===undefined) p.lastCompletedDate=null;
+    if(!p.worldLevels) p.worldLevels={};
+    if(!p.worldPrizes) p.worldPrizes={};
+    Object.keys(WORLDS).forEach(function(w){
+      if(typeof p.worldLevels[w]!=="number") p.worldLevels[w]=0;
+      if(!Array.isArray(p.worldPrizes[w])) p.worldPrizes[w]=[];
+    });
+    if(typeof p.ronaldoSolved!=="number") p.ronaldoSolved=0;
+    return p;
+  }
+
+  var lastLineIdx = {correct:{}, wrong:{}};
+  function pickLine(arr, world, kind){
+    if(arr.length<=1) return arr[0];
+    var last = lastLineIdx[kind][world];
+    var idx = Math.floor(Math.random()*arr.length);
+    var tries=0;
+    while(idx===last && tries<6){ idx=Math.floor(Math.random()*arr.length); tries++; }
+    lastLineIdx[kind][world]=idx;
+    return arr[idx];
+  }
+
+  /* ---- short "why it's wrong / how to do it right" teaching, shown only on a mistake ---- */
+  function buildTeaching(a,b,correct){
+    var specialTricks = {
+      1: function(other){ return "Умножаем на 1 — число не меняется: "+other+" × 1 = "+other+"."; },
+      2: function(other){ return "Умножить на 2 — сложи число с самим собой: "+other+" + "+other+" = "+(other*2)+"."; },
+      5: function(other){ var ten=other*10; return "Умножаем на 5 — это как умножить на 10 и взять половину: "+other+" × 10 = "+ten+", половина — "+(ten/2)+"."; },
+      9: function(other){ var ten=other*10; return "Умножаем на 9 — умножь на 10 и отними число: "+other+" × 10 = "+ten+", "+ten+" − "+other+" = "+(ten-other)+"."; },
+      10:function(other){ return "Умножить на 10 — просто добавь ноль в конце: "+other+" × 10 = "+(other*10)+"."; }
+    };
+    var tip=null;
+    [b,a].forEach(function(candidate){
+      if(tip) return;
+      var other = candidate===b? a : b;
+      if(specialTricks[candidate]) tip = specialTricks[candidate](other);
+    });
+    if(!tip){
+      var big=Math.max(a,b), small=Math.min(a,b);
+      var base=big-1;
+      var neighborProduct=small*base;
+      tip = "Подсказка: "+small+" × "+base+" = "+neighborProduct+", а "+small+" × "+big+" будет на "+small+" больше — "+neighborProduct+" + "+small+" = "+correct+".";
+    }
+    return {rows:Math.min(a,b), cols:Math.max(a,b), tip:tip};
+  }
+  function renderTeachGrid(rows, cols){
+    var cell = Math.max(7, Math.min(16, Math.floor(150/cols)));
+    var html = "";
+    for(var i=0;i<rows*cols;i++){ html += '<span class="fg-cell" style="width:'+cell+'px;height:'+cell+'px;"></span>'; }
+    return {html:html, cell:cell, cols:cols};
+  }
+
+  var MASCOTS = {
+    cube: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#0F2E28"/><line x1="50" y1="20" x2="50" y2="10" stroke="#F5D90A" stroke-width="4" stroke-linecap="round"/><circle cx="50" cy="8" r="5" fill="#F5D90A"/><rect x="30" y="20" width="40" height="30" rx="8" fill="#5EEAD4"/><rect x="38" y="30" width="9" height="11" rx="2" fill="#0F2E28"/><rect x="53" y="30" width="9" height="11" rx="2" fill="#0F2E28"/><rect x="26" y="52" width="48" height="34" rx="12" fill="#1E5347"/><rect x="41" y="60" width="18" height="18" rx="4" fill="#F5D90A"/><rect x="12" y="56" width="14" height="24" rx="6" fill="#5EEAD4"/><rect x="74" y="56" width="14" height="24" rx="6" fill="#5EEAD4"/><rect x="35" y="84" width="12" height="14" rx="4" fill="#0F2E28"/><rect x="53" y="84" width="12" height="14" rx="4" fill="#0F2E28"/></svg>',
+    arena: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#093016"/><circle cx="46" cy="22" r="10" fill="#3DDC64"/><rect x="40" y="32" width="14" height="24" rx="6" fill="#3DDC64" transform="rotate(-6 47 44)"/><rect x="26" y="30" width="9" height="20" rx="4" fill="#3DDC64" transform="rotate(-45 30 32)"/><rect x="55" y="34" width="9" height="16" rx="4" fill="#3DDC64" transform="rotate(25 59 36)"/><rect x="30" y="54" width="10" height="26" rx="5" fill="#3DDC64" transform="rotate(8 35 56)"/><path d="M52 52 L80 64 L75 74 L48 62 Z" fill="#3DDC64"/><circle cx="84" cy="70" r="8" fill="#FFD23F"/><path d="M84 64 L86 68 L84 72 L81 68 Z" fill="#093016"/><path d="M64 78 Q72 76 79 80" stroke="#FFD23F" stroke-width="2" fill="none" opacity=".6"/><path d="M60 84 Q70 83 78 87" stroke="#FFD23F" stroke-width="2" fill="none" opacity=".4"/></svg>',
+    hunter: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#160B28"/><path d="M50 30 C28 40 22 68 33 92 L50 76 L67 92 C78 68 72 40 50 30 Z" fill="#B892FF" opacity=".92"/><circle cx="50" cy="28" r="11" fill="#FF5B4C"/><path d="M39 22 Q50 10 61 22 Q56 18 50 18 Q44 18 39 22Z" fill="#160B28"/><rect x="42" y="38" width="16" height="26" rx="6" fill="#FF5B4C"/><rect x="60" y="30" width="8" height="20" rx="3" fill="#FF5B4C" transform="rotate(-40 64 34)"/><rect x="70" y="6" width="6" height="34" rx="2" fill="#F5EEFF" transform="rotate(-24 73 20)"/><rect x="66" y="34" width="10" height="6" rx="2" fill="#B892FF" transform="rotate(-24 71 37)"/><rect x="44" y="66" width="9" height="20" rx="3" fill="#160B28"/><rect x="55" y="66" width="9" height="20" rx="3" fill="#160B28"/></svg>',
+    studio: '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="46" fill="#2E0A21"/><path d="M36 30 A14 14 0 0 1 64 30" stroke="#FFD84D" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="31" y="28" width="7" height="13" rx="3" fill="#FFD84D"/><rect x="62" y="28" width="7" height="13" rx="3" fill="#FFD84D"/><circle cx="50" cy="32" r="13" fill="#FF7A45"/><rect x="36" y="48" width="28" height="30" rx="11" fill="#FF7A45"/><rect x="63" y="50" width="8" height="18" rx="3" fill="#FF7A45" transform="rotate(-18 67 52)"/><rect x="70" y="32" width="14" height="22" rx="3" fill="#FFD84D"/><path d="M75 38 L75 48 L82 43 Z" fill="#2E0A21"/><path d="M22 20 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="#FFD84D"/><rect x="38" y="80" width="9" height="14" rx="3" fill="#2E0A21"/><rect x="53" y="80" width="9" height="14" rx="3" fill="#2E0A21"/></svg>'
+  };
+
+  var STREAK_BADGES=[{n:3,label:"Первая тройка",emoji:"🔥"},{n:7,label:"Неделя огня",emoji:"🔥🔥"},{n:14,label:"Две недели",emoji:"🔥🔥🔥"},{n:30,label:"Месяц мастерства",emoji:"🏆"}];
+  var XP_BADGES=[{n:100,label:"Новичок",emoji:"⭐"},{n:500,label:"Знаток",emoji:"🌟"},{n:1500,label:"Чемпион умножения",emoji:"🏅"},{n:3000,label:"Легенда таблицы",emoji:"👑"}];
+
+  /* ===================== SMALL UTILS ===================== */
+  function pad2(n){return n<10?"0"+n:""+n;}
+  function todayStr(){var d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+  function dateFromStr(s){var p=s.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]);}
+  function addDays(dateStr,n){var d=dateFromStr(dateStr); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+  function daysBetween(fromStr,toStr){return Math.round((dateFromStr(toStr)-dateFromStr(fromStr))/86400000);}
+  function hashString(str){var h=0; for(var i=0;i<str.length;i++){h=(h<<5)-h+str.charCodeAt(i); h|=0;} return h>>>0;}
+  function mulberry32(a){return function(){a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296;};}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function show(id){document.getElementById(id).hidden=false;}
+  function hide(id){document.getElementById(id).hidden=true;}
+  function $(id){return document.getElementById(id);}
+
+  /* ===================== STAGE / PROGRESSION ===================== */
+  function getStage(daysSinceStart){
+    var week = Math.max(0, Math.floor(daysSinceStart/7));
+    if(week<4){
+      var st=WEEK_STAGES[week];
+      var introduced=[];
+      for(var i=0;i<=week;i++) introduced=introduced.concat(WEEK_STAGES[i].tables);
+      var review=introduced.filter(function(t){return st.tables.indexOf(t)===-1;});
+      return {week:week, index:week, tables:st.tables, review:review, title:st.title, sub:st.sub, hero:st.hero, mastery:false};
+    }
+    return {week:week, index:week, tables:ALL_TABLES.slice(), review:[], title:"Мастер-неделя "+(week+1), sub:"Тренируем все таблицы, особое внимание слабым местам", hero:"🏆", mastery:true};
+  }
+
+  function computeTableWeights(stats){
+    var w={};
+    ALL_TABLES.forEach(function(t){
+      var s=(stats && stats[String(t)]) || {correct:0,total:0};
+      var acc = s.total>0 ? s.correct/s.total : 0.5;
+      w[t] = (1-acc) + 0.15;
+    });
+    return w;
+  }
+
+  function weightedPick(rng, tables, weights){
+    var total=0; tables.forEach(function(t){total+=weights[t];});
+    var r=rng()*total, acc=0;
+    for(var i=0;i<tables.length;i++){ acc+=weights[tables[i]]; if(r<=acc) return tables[i]; }
+    return tables[tables.length-1];
+  }
+
+  function buildChoiceOptions(rng, a, b){
+    var correct=a*b;
+    var poolRaw=[a*b-a, a*b+a, a*b-b, a*b+b, a+b, a*b-1, a*b+1, Math.max(1,a-1)*b, a*(b+1)];
+    var uniq=[];
+    poolRaw.forEach(function(v){ v=Math.round(v); if(v>0 && v!==correct && uniq.indexOf(v)===-1) uniq.push(v); });
+    for(var i=uniq.length-1;i>0;i--){ var j=Math.floor(rng()*(i+1)); var tmp=uniq[i]; uniq[i]=uniq[j]; uniq[j]=tmp; }
+    var distractors=uniq.slice(0,3);
+    var filler=correct+2;
+    while(distractors.length<3){ if(filler!==correct && distractors.indexOf(filler)===-1) distractors.push(filler); filler++; }
+    var options=distractors.concat([correct]);
+    for(var i=options.length-1;i>0;i--){ var j=Math.floor(rng()*(i+1)); var tmp=options[i]; options[i]=options[j]; options[j]=tmp; }
+    return options;
+  }
+
+  function generateQuestions(dateStr, count, stage, stats){
+    var rng=mulberry32(hashString(dateStr+"|markmatika|v2"));
+    var weights = computeTableWeights(stats);
+    var seen={};
+    function pickTable(){
+      if(stage.mastery) return weightedPick(rng, stage.tables, weights);
+      if(stage.review.length>0 && rng()<0.3) return stage.review[Math.floor(rng()*stage.review.length)];
+      return stage.tables[Math.floor(rng()*stage.tables.length)];
+    }
+    function pickMult(t){
+      var m=1+Math.floor(rng()*10);
+      var key=Math.min(t,m)+","+Math.max(t,m);
+      var tries=0;
+      while(seen[key] && tries<6){ m=1+Math.floor(rng()*10); key=Math.min(t,m)+","+Math.max(t,m); tries++; }
+      seen[key]=true;
+      return m;
+    }
+    var qs=[], budget=count, idx=0;
+    while(budget>0){
+      var roll=rng();
+      var type="input";
+      if(idx===0){ type="input"; }
+      else if(budget>=3 && roll<0.2){ type="sequence"; }
+      else if(roll<0.42){ type="choice"; }
+      else if(roll<0.62){ type="commute"; }
+      if(type==="sequence"){
+        var st=pickTable();
+        var start=1+Math.floor(rng()*8);
+        qs.push({type:"sequence", table:st, base:st, mults:[start,start+1,start+2]});
+        budget-=3; idx++;
+        continue;
+      }
+      var t2=pickTable();
+      var m2=pickMult(t2);
+      if(type==="commute" && t2===m2) type="choice"; // squares don't teach a swap, use choice instead
+      if(type==="commute"){
+        var shownA=t2, shownB=m2;
+        if(rng()<0.5){ var tmp=shownA; shownA=shownB; shownB=tmp; }
+        qs.push({type:"commute", table:t2, shownA:shownA, shownB:shownB, a:shownB, b:shownA});
+      } else if(type==="choice"){
+        var swap=rng()<0.5;
+        var ca=swap?m2:t2, cb=swap?t2:m2;
+        qs.push({type:"choice", table:t2, a:ca, b:cb, options:buildChoiceOptions(rng,ca,cb)});
+      } else {
+        var swap2=rng()<0.5;
+        qs.push({type:"input", table:t2, a: swap2?m2:t2, b: swap2?t2:m2});
+      }
+      budget-=1; idx++;
+    }
+    return qs;
+  }
+
+  /* ===================== STORE (localStorage — this is a public, no-login site) ===================== */
+  var LS_PREFIX = "markmatika_v1_";
+  function lsGet(key){
+    try{ var raw=localStorage.getItem(LS_PREFIX+key); return raw?JSON.parse(raw):null; }
+    catch(e){ return null; }
+  }
+  function lsSet(key,val){
+    try{ localStorage.setItem(LS_PREFIX+key, JSON.stringify(val)); return true; }
+    catch(e){ return false; }
+  }
+
+  var store = {
+    getConfig: function(){ return Promise.resolve(lsGet("config")); },
+    setConfig: function(data){ lsSet("config",data); return Promise.resolve(); },
+    updateConfig: function(data){ var c=lsGet("config")||{}; Object.assign(c,data); lsSet("config",c); return Promise.resolve(); },
+    getProfile: function(){ return Promise.resolve(lsGet("profile")); },
+    setProfile: function(data){ lsSet("profile",data); return Promise.resolve(); },
+    updateProfile: function(data){ var p=lsGet("profile")||{}; Object.assign(p,data); lsSet("profile",p); return Promise.resolve(); },
+    getStats: function(){ return Promise.resolve(lsGet("stats")); },
+    setStats: function(data){ lsSet("stats",data); return Promise.resolve(); },
+    updateStats: function(data){ var s=lsGet("stats")||{}; Object.assign(s,data); lsSet("stats",s); return Promise.resolve(); },
+    getDay: function(dateStr){ var days=lsGet("days")||{}; return Promise.resolve(days[dateStr]||null); },
+    setDay: function(dateStr,data){ var days=lsGet("days")||{}; days[dateStr]=data; lsSet("days",days); return Promise.resolve(); },
+    getRecentDays: function(limitN){
+      var days=lsGet("days")||{};
+      var arr=Object.keys(days).map(function(k){return days[k];}).filter(Boolean);
+      arr.sort(function(a,b){return a.date<b.date?1:-1;});
+      return Promise.resolve(arr.slice(0,limitN));
+    },
+    resetAll: function(){
+      var freshStats={}; ALL_TABLES.forEach(function(t){freshStats[t]={correct:0,total:0};});
+      var freshProfile=normalizeProfile({});
+      lsSet("stats",freshStats); lsSet("profile",freshProfile); lsSet("days",{});
+      return Promise.resolve();
+    }
+  };
+
+  /* ===================== APP STATE ===================== */
+  var state = { config:null, profile:null, stats:null, selectedWorld:"cube", quiz:null, dashboardDays:[] };
+
+  function init(){
+    store.getConfig().then(function(cfg){
+      hide("loading");
+      if(!cfg){
+        var dInput=$("setup-startdate"); dInput.value=todayStr();
+        show("screen-setup");
+        return;
+      }
+      state.config=cfg;
+      showRolePicker();
+    });
+  }
+
+  /* ---------- ROLE PICKER ---------- */
+  function showRolePicker(){
+    hideAllScreens();
+    $("role-child-label").textContent="Я — "+state.config.childName;
+    show("screen-role");
+  }
+  function hideAllScreens(){
+    ["screen-setup","screen-role","screen-pin","screen-world","screen-ronaldo","screen-levelpath","screen-mission","screen-quiz","screen-summary","screen-parent","screen-settings"].forEach(hide);
+    hide("feedback-overlay");
+  }
+
+  /* ---------- SETUP SUBMIT ---------- */
+  var setupCount=14;
+  $("setup-count-minus").addEventListener("click",function(){ setupCount=Math.max(8,setupCount-1); $("setup-count-out").textContent=setupCount; });
+  $("setup-count-plus").addEventListener("click",function(){ setupCount=Math.min(20,setupCount+1); $("setup-count-out").textContent=setupCount; });
+
+  $("setup-submit").addEventListener("click",function(){
+    var name=$("setup-name").value.trim()||"Марк";
+    var startDate=$("setup-startdate").value||todayStr();
+    var pin1=$("setup-pin1").value.trim(), pin2=$("setup-pin2").value.trim();
+    var pinOk=/^\d{4}$/.test(pin1) && pin1===pin2;
+    if(!pinOk){ show("setup-pin-err"); return; }
+    hide("setup-pin-err");
+    var cfg={childName:name, startDate:startDate, dailyCount:setupCount, pin:pin1, createdAt: todayStr()};
+    var freshStats={}; ALL_TABLES.forEach(function(t){freshStats[t]={correct:0,total:0};});
+    var freshProfile=normalizeProfile({});
+    Promise.all([ store.setConfig(cfg), store.setStats(freshStats), store.setProfile(freshProfile) ]).then(function(){
+      state.config=cfg;
+      showRolePicker();
+    });
+  });
+
+  /* ---------- ROLE BUTTONS ---------- */
+  $("role-child").addEventListener("click",function(){
+    Promise.all([store.getProfile(), store.getStats()]).then(function(r){
+      state.profile=normalizeProfile(r[0]);
+      state.stats=r[1]||{};
+      showWorldSelect();
+    });
+  });
+  $("role-parent").addEventListener("click",function(){
+    pinBuffer="";
+    renderPinDots();
+    hideAllScreens(); show("screen-pin");
+  });
+  $("pin-cancel").addEventListener("click",showRolePicker);
+
+  /* ---------- PIN PAD ---------- */
+  var pinBuffer="";
+  function renderPinDots(hasError){
+    var dots=$("pin-dots").children;
+    for(var i=0;i<4;i++){
+      dots[i].className="pin-dot"+(i<pinBuffer.length?" filled":"")+(hasError?" error":"");
+    }
+  }
+  $("pinpad").addEventListener("click",function(e){
+    var btn=e.target.closest("button"); if(!btn||btn.classList.contains("pp-empty")) return;
+    if(btn.id==="pin-back"){ pinBuffer=pinBuffer.slice(0,-1); renderPinDots(); return; }
+    var d=btn.getAttribute("data-d"); if(d==null) return;
+    if(pinBuffer.length>=4) return;
+    pinBuffer+=d;
+    renderPinDots();
+    if(pinBuffer.length===4){
+      if(pinBuffer===state.config.pin){
+        setTimeout(openParentDashboard,120);
+      } else {
+        renderPinDots(true);
+        $("screen-pin").querySelector(".card").classList.add("shake");
+        setTimeout(function(){
+          $("screen-pin").querySelector(".card").classList.remove("shake");
+          pinBuffer=""; renderPinDots();
+        },420);
+      }
+    }
+  });
+
+  /* ================= CHILD FLOW ================= */
+  function showWorldSelect(){
+    hideAllScreens();
+    $("world-greet").textContent="Привет, "+state.config.childName+"!";
+    Object.keys(WORLDS).forEach(function(w){
+      var lvl = state.profile.worldLevels[w]||0;
+      var el = $("wp-"+w);
+      if(el) el.textContent = lvl>0 ? ("Уровень "+(lvl+1)+" · "+getLevelDef(w,lvl).name) : "Начать первый уровень";
+    });
+    show("screen-world");
+  }
+  $("world-back").addEventListener("click",showRolePicker);
+  $("world-grid").addEventListener("click",function(e){
+    var card=e.target.closest(".world-card"); if(!card) return;
+    state.selectedWorld=card.getAttribute("data-world");
+    showLevelPath();
+  });
+
+  /* ---------- BONUS: RONALDO WORD PROBLEMS (addition/subtraction reasoning) ---------- */
+  var ronaldoAnswer="";
+  var ronaldoProblem=null;
+  function generateRonaldoProblem(){
+    var rng = mulberry32((Date.now()^Math.floor(Math.random()*1e9))>>>0);
+    var knownCount = 2 + (rng()<0.35 ? 1 : 0); // usually 2 known matches, sometimes 3
+    var matchGoals=[];
+    for(var i=0;i<knownCount;i++){ matchGoals.push(1+Math.floor(rng()*6)); }
+    var answer = 1+Math.floor(rng()*6);
+    var total = matchGoals.reduce(function(a,b){return a+b;},0) + answer;
+    return { knownCount:knownCount, matchGoals:matchGoals, total:total, answer:answer };
+  }
+  var MATCH_WORDS = ["первом","втором","третьем","четвёртом","пятом"];
+  var MATCH_PREP = ["в первом","во втором","в третьем","в четвёртом","в пятом"];
+  function buildRonaldoStory(p){
+    var parts = p.matchGoals.map(function(g,i){ return MATCH_PREP[i]+" — "+g; });
+    return "⚽ Криштиану Роналду забил всего "+p.total+" голов в "+(p.knownCount+1)+" матчах. Известно: "+parts.join(", ")+". Сколько голов он забил в "+MATCH_WORDS[p.knownCount]+" матче?";
+  }
+  function buildRonaldoExplanation(p){
+    var expr = p.total+" − "+p.matchGoals.join(" − ")+" = "+p.answer;
+    return "Всего голов — "+p.total+". Чтобы найти голы в последнем матче, отнимаем от общего числа голы во всех остальных матчах: "+expr+". Значит, в "+MATCH_WORDS[p.knownCount]+" матче он забил "+p.answer+" "+(p.answer===1?"гол":(p.answer<5?"гола":"голов"))+".";
+  }
+  function renderRonaldoProblem(){
+    ronaldoAnswer="";
+    ronaldoProblem = generateRonaldoProblem();
+    $("ronaldo-story").textContent = buildRonaldoStory(ronaldoProblem);
+    $("ronaldo-hero").innerHTML = MASCOTS.arena||"";
+    updateRonaldoAnswerBox();
+    hide("ronaldo-explain");
+    setRonaldoKeypadEnabled(true);
+  }
+  function updateRonaldoAnswerBox(){ $("ronaldo-answer-box").textContent = ronaldoAnswer.length? ronaldoAnswer : " "; }
+  function setRonaldoKeypadEnabled(on){
+    var btns=$("ronaldo-keypad").querySelectorAll("button");
+    for(var i=0;i<btns.length;i++) btns[i].disabled=!on;
+  }
+  function showRonaldo(){
+    hideAllScreens();
+    $("ronaldo-solved").textContent = state.profile.ronaldoSolved||0;
+    $("ronaldo-xp").textContent = state.profile.totalXP||0;
+    renderRonaldoProblem();
+    show("screen-ronaldo");
+  }
+  $("ronaldo-entry").addEventListener("click", showRonaldo);
+  $("ronaldo-back").addEventListener("click", showWorldSelect);
+
+  $("ronaldo-keypad").addEventListener("click",function(e){
+    var btn=e.target.closest("button"); if(!btn) return;
+    var k=btn.getAttribute("data-k");
+    if(k==="back"){ ronaldoAnswer=ronaldoAnswer.slice(0,-1); updateRonaldoAnswerBox(); return; }
+    if(k==="ok"){ submitRonaldoAnswer(); return; }
+    if(ronaldoAnswer.length>=2) return;
+    ronaldoAnswer+=k; updateRonaldoAnswerBox();
+  });
+
+  function submitRonaldoAnswer(){
+    if(ronaldoAnswer.length===0) return;
+    setRonaldoKeypadEnabled(false);
+    var correct = parseInt(ronaldoAnswer,10) === ronaldoProblem.answer;
+    var xp = correct ? 12 : 0;
+    Promise.all([store.getProfile()]).then(function(r){
+      var profile=normalizeProfile(r[0]);
+      profile.totalXP = (profile.totalXP||0)+xp;
+      if(correct) profile.ronaldoSolved = (profile.ronaldoSolved||0)+1;
+      store.setProfile(profile).then(function(){
+        state.profile=profile;
+        $("ronaldo-xp").textContent = profile.totalXP||0;
+        $("ronaldo-solved").textContent = profile.ronaldoSolved||0;
+      });
+    });
+    var verdict=$("ronaldo-verdict");
+    verdict.classList.remove("rv-ok","rv-bad");
+    if(correct){
+      verdict.classList.add("rv-ok");
+      verdict.textContent = "Верно! +"+xp+" очков ⚽";
+    } else {
+      verdict.classList.add("rv-bad");
+      verdict.textContent = "Почти! Правильный ответ: "+ronaldoProblem.answer;
+    }
+    $("ronaldo-explain-text").textContent = buildRonaldoExplanation(ronaldoProblem);
+    show("ronaldo-explain");
+  }
+  $("ronaldo-next").addEventListener("click", renderRonaldoProblem);
+
+  $("ronaldo-speak").addEventListener("click",function(){
+    if(!("speechSynthesis" in window)){
+      $("ronaldo-speak").textContent="Голос недоступен на этом устройстве";
+      return;
+    }
+    try{
+      window.speechSynthesis.cancel();
+      var utter = new SpeechSynthesisUtterance($("ronaldo-explain-text").textContent);
+      utter.lang="ru-RU"; utter.rate=0.92; utter.pitch=1.05;
+      window.speechSynthesis.speak(utter);
+    }catch(e){}
+  });
+
+  function todayStage(){
+    // Full variety from question one: draw from every table 1..10 right away, rather than
+    // rationing them out over weeks. computeTableWeights() still leans questions toward
+    // whichever tables the child gets wrong more often, so it stays adaptive, not random.
+    return { week:0, index:0, tables:ALL_TABLES.slice(), review:[], title:"Все таблицы умножения", sub:"Каждый раз — разные числа от 1 до 10", hero:"🎲", mastery:true };
+  }
+
+  /* ---------- LEVEL PATH (Duolingo-style map of levels for the chosen world) ---------- */
+  function showLevelPath(){
+    hideAllScreens();
+    var world=state.selectedWorld, w=WORLDS[world];
+    var current = state.profile.worldLevels[world]||0;
+    $("levelpath-kidzone").setAttribute("data-world",world);
+    $("levelpath-worldname").innerHTML = "✨ "+w.name;
+    $("levelpath-xp").textContent = state.profile.totalXP||0;
+
+    var trophies = state.profile.worldPrizes[world]||[];
+    var tw=$("levelpath-trophies");
+    if(trophies.length===0){
+      tw.innerHTML = '<span class="trophy-empty">Пройди первый уровень, чтобы получить приз!</span>';
+    } else {
+      tw.innerHTML = trophies.slice(-10).map(function(p){ return '<span class="trophy-chip" title="'+esc(p.label)+'">'+p.emoji+'</span>'; }).join("");
+    }
+
+    var listEl=$("level-path-list"); listEl.innerHTML="";
+    var showCount = current+3; // a couple of upcoming locked levels for anticipation
+    for(var i=0;i<showCount;i++){
+      var status = i<current ? "done" : (i===current ? "current" : "locked");
+      var d=getLevelDef(world,i);
+      var node=document.createElement("div");
+      node.className="level-node lvl-"+status+(d.isBoss?" lvl-boss":"");
+      node.innerHTML =
+        '<div class="level-node-badge">'+levelBadgeContent(world,i,status)+'</div>'+
+        '<div class="level-node-info"><div class="level-node-name">'+esc(d.name)+'</div><div class="level-node-sub">'+esc(status==="locked"?"Сначала пройди предыдущий уровень":d.sub)+'</div></div>'+
+        (status!=="locked" ? '<div class="level-node-prize">'+d.prizeEmoji+'</div>' : '');
+      if(status==="current"){ node.addEventListener("click",function(idx){ return function(){ showMission(idx,false); }; }(i)); }
+      else if(status==="done"){ node.addEventListener("click",function(idx){ return function(){ showMission(idx,true); }; }(i)); }
+      listEl.appendChild(node);
+    }
+    show("screen-levelpath");
+    setTimeout(function(){
+      var cur=listEl.querySelector(".lvl-current");
+      if(cur) cur.scrollIntoView({block:"center", behavior:"instant"});
+    },30);
+  }
+  $("levelpath-back").addEventListener("click",showWorldSelect);
+
+  function showMission(levelIdx, isReplay){
+    hideAllScreens();
+    state.currentLevelIdx = levelIdx;
+    state.currentIsReplay = !!isReplay;
+    var world=state.selectedWorld, w=WORLDS[world];
+    var d = getLevelDef(world, levelIdx);
+    var mz=$("mission-kidzone"); mz.setAttribute("data-world",world);
+    $("mission-stage-label").textContent=d.name;
+    $("mission-hero").innerHTML=MASCOTS[world]||"";
+    $("mission-title").textContent=d.sub;
+    $("mission-sub").textContent = d.narrative || (w.name+" ждёт тебя!");
+    $("mission-count-num").textContent=d.questions;
+    $("mission-count-min").textContent="~"+Math.max(3,Math.round(d.questions*0.6));
+    $("mission-streak").textContent=state.profile.streak||0;
+    $("mission-xp").textContent=state.profile.totalXP||0;
+    $("mission-start").disabled=false;
+    $("mission-start").textContent = isReplay ? "Играть ещё раз →" : "Играть! →";
+    if(isReplay){ $("mission-already-text").textContent="Это повторное прохождение — опыт и очки начислим, но приз за уровень уже получен."; show("mission-already"); }
+    else { hide("mission-already"); }
+    show("screen-mission");
+  }
+  $("mission-back").addEventListener("click",showLevelPath);
+  $("mission-start").addEventListener("click",function(){ startQuiz(); });
+
+  function startQuiz(){
+    var stage=todayStage();
+    var world=state.selectedWorld;
+    var levelIdx=state.currentLevelIdx, isReplay=state.currentIsReplay;
+    var d=getLevelDef(world, levelIdx);
+    var seedSuffix = isReplay ? ("-lvl"+levelIdx+"-rp-"+Date.now()) : ("-lvl"+levelIdx);
+    var qs=generateQuestions(todayStr()+seedSuffix, d.questions, stage, state.stats);
+    state.quiz={ index:0, queue:qs, results:[], correctFirstTry:0, xpGain:0, freeplay:false, isReplay:isReplay, world:world, levelIdx:levelIdx, isBoss:!!d.isBoss, retries:{} };
+    renderQuizDots();
+    $("quiz-kidzone").setAttribute("data-world",world);
+    $("quiz-xp").textContent=state.profile.totalXP||0;
+    renderCurrentQuestion();
+    hideAllScreens(); show("screen-quiz");
+  }
+  $("quiz-exit").addEventListener("click",function(){ showMission(state.currentLevelIdx, state.currentIsReplay); });
+
+  function renderQuizDots(){
+    var wrap=$("quiz-dots"); wrap.innerHTML="";
+    state.quiz.queue.forEach(function(q,i){
+      var d=document.createElement("span");
+      d.className="progress-dot"+(i===state.quiz.index?" pd-current":"");
+      wrap.appendChild(d);
+    });
+  }
+  var quizAnswer="";
+  var seqAnswers=[], seqActive=0;
+  function setKeypadEnabled(on){
+    var btns=$("quiz-keypad").querySelectorAll("button");
+    for(var i=0;i<btns.length;i++) btns[i].disabled=!on;
+  }
+  function renderCurrentQuestion(){
+    quizAnswer="";
+    var q=state.quiz.queue[state.quiz.index];
+    setKeypadEnabled(true);
+    hide("quiz-commute-ref"); hide("quiz-choices"); hide("quiz-sequence");
+    show("quiz-eq"); show("quiz-answer-box"); show("quiz-keypad");
+    if(q.type==="choice"){
+      hide("quiz-answer-box"); hide("quiz-keypad");
+      $("quiz-eq").textContent=q.a+" × "+q.b+" = ?";
+      renderChoices(q);
+      show("quiz-choices");
+    } else if(q.type==="commute"){
+      $("quiz-commute-ref").textContent="Мы уже знаем: "+q.shownA+" × "+q.shownB+" = "+(q.shownA*q.shownB);
+      show("quiz-commute-ref");
+      $("quiz-eq").textContent=q.a+" × "+q.b+" = ?";
+      updateAnswerBox();
+    } else if(q.type==="sequence"){
+      hide("quiz-eq"); hide("quiz-answer-box");
+      seqAnswers=["","",""]; seqActive=0;
+      renderSequenceRows(q);
+      show("quiz-sequence");
+    } else {
+      $("quiz-eq").textContent=q.a+" × "+q.b+" = ?";
+      updateAnswerBox();
+    }
+  }
+  function updateAnswerBox(){ $("quiz-answer-box").textContent = quizAnswer.length? quizAnswer : " "; }
+
+  function renderChoices(q){
+    var wrap=$("quiz-choices"); wrap.innerHTML="";
+    q.options.forEach(function(val){
+      var b=document.createElement("button");
+      b.className="quiz-choice-btn"; b.textContent=String(val); b.setAttribute("data-val",val);
+      wrap.appendChild(b);
+    });
+  }
+  $("quiz-choices").addEventListener("click",function(e){
+    var btn=e.target.closest(".quiz-choice-btn"); if(!btn || btn.disabled) return;
+    submitChoice(parseInt(btn.getAttribute("data-val"),10), btn);
+  });
+
+  function renderSequenceRows(q){
+    var wrap=$("quiz-sequence"); wrap.innerHTML="";
+    q.mults.forEach(function(m,i){
+      var row=document.createElement("div");
+      row.className="seq-row"+(i===0?" seq-row-active":"");
+      row.innerHTML = q.base+" × "+m+" = <span class=\"seq-box\" id=\"seq-box-"+i+"\"> </span>";
+      wrap.appendChild(row);
+    });
+  }
+  function updateSeqBox(){
+    var box=$("seq-box-"+seqActive);
+    if(box) box.textContent = quizAnswer.length? quizAnswer : " ";
+  }
+
+  $("quiz-keypad").addEventListener("click",function(e){
+    var btn=e.target.closest("button"); if(!btn) return;
+    var k=btn.getAttribute("data-k");
+    var q=state.quiz.queue[state.quiz.index];
+    if(q && q.type==="sequence"){
+      if(k==="back"){ quizAnswer=quizAnswer.slice(0,-1); updateSeqBox(); return; }
+      if(k==="ok"){
+        if(quizAnswer.length===0) return;
+        seqAnswers[seqActive]=quizAnswer;
+        var rows=$("quiz-sequence").children;
+        if(rows[seqActive]) rows[seqActive].classList.remove("seq-row-active");
+        if(seqActive<q.mults.length-1){
+          seqActive++; quizAnswer="";
+          if(rows[seqActive]) rows[seqActive].classList.add("seq-row-active");
+          updateSeqBox();
+        } else {
+          submitSequence(q);
+        }
+        return;
+      }
+      if(quizAnswer.length>=3) return;
+      quizAnswer+=k; updateSeqBox();
+      return;
+    }
+    if(k==="back"){ quizAnswer=quizAnswer.slice(0,-1); updateAnswerBox(); return; }
+    if(k==="ok"){ submitAnswer(); return; }
+    if(quizAnswer.length>=3) return;
+    quizAnswer+=k; updateAnswerBox();
+  });
+
+  function submitChoice(val, btnEl){
+    var q=state.quiz.queue[state.quiz.index];
+    var w=WORLDS[state.selectedWorld];
+    var correct = val===q.a*q.b;
+    Array.prototype.forEach.call($("quiz-choices").children,function(b){ b.disabled=true; });
+    btnEl.classList.add(correct?"qc-correct":"qc-wrong");
+    if(!correct){
+      Array.prototype.forEach.call($("quiz-choices").children,function(b){ if(parseInt(b.getAttribute("data-val"),10)===q.a*q.b) b.classList.add("qc-correct"); });
+    }
+    if(correct){
+      state.quiz.xpGain += 10; state.quiz.correctFirstTry++;
+      state.quiz.results.push({a:q.a,b:q.b,table:q.table,firstTry:true,finalOk:true});
+      markDot(state.quiz.index,"pd-ok");
+    } else {
+      state.quiz.results.push({a:q.a,b:q.b,table:q.table,firstTry:false,finalOk:false});
+      markDot(state.quiz.index,"pd-bad");
+    }
+    setTimeout(function(){ showFeedback(correct, q, w, correct?10:0, false); }, 260);
+  }
+
+  function submitSequence(q){
+    var rows=$("quiz-sequence").children;
+    var allOk=true, anyOk=false;
+    var subResults=[];
+    q.mults.forEach(function(m,i){
+      var val=parseInt(seqAnswers[i],10);
+      var correct = val === q.base*m;
+      if(correct) anyOk=true; else allOk=false;
+      subResults.push({a:q.base, b:m, table:q.table, firstTry:correct, finalOk:correct});
+      if(rows[i]) rows[i].classList.add(correct?"seq-ok":"seq-bad");
+    });
+    subResults.forEach(function(r){ state.quiz.results.push(r); if(r.firstTry){ state.quiz.correctFirstTry++; state.quiz.xpGain+=8; } });
+    markDot(state.quiz.index, allOk?"pd-ok":(anyOk?"pd-retry":"pd-bad"));
+    setKeypadEnabled(false);
+    setTimeout(function(){ showSequenceFeedback(q, subResults); }, 500);
+  }
+
+  function submitAnswer(){
+    if(quizAnswer.length===0) return;
+    setKeypadEnabled(false);
+    var q=state.quiz.queue[state.quiz.index];
+    var correct = parseInt(quizAnswer,10) === q.a*q.b;
+    var w=WORLDS[state.selectedWorld];
+
+    if(q.type==="commute"){
+      if(correct){
+        state.quiz.xpGain += 10; state.quiz.correctFirstTry++;
+        state.quiz.results.push({a:q.a,b:q.b,table:q.table,firstTry:true,finalOk:true});
+        markDot(state.quiz.index,"pd-ok");
+      } else {
+        state.quiz.results.push({a:q.a,b:q.b,table:q.table,firstTry:false,finalOk:false});
+        markDot(state.quiz.index,"pd-bad");
+      }
+      showFeedback(correct, q, w, correct?10:0, false);
+      return;
+    }
+
+    var key=q.a+"x"+q.b;
+    var retryCount = state.quiz.retries[key]||0;
+
+    if(correct){
+      var xp = retryCount>0?5:10;
+      state.quiz.xpGain += xp;
+      if(retryCount===0) state.quiz.correctFirstTry++;
+      state.quiz.results.push({a:q.a,b:q.b,table:q.table,firstTry:retryCount===0,finalOk:true});
+      markDot(state.quiz.index, retryCount>0?"pd-retry":"pd-ok");
+      showFeedback(true, q, w, xp);
+    } else {
+      if(retryCount<1){
+        state.quiz.retries[key]=retryCount+1;
+        state.quiz.queue.push(q);
+        markDot(state.quiz.index,"pd-retry");
+        showFeedback(false, q, w, 0, true);
+      } else {
+        state.quiz.results.push({a:q.a,b:q.b,table:q.table,firstTry:false,finalOk:false});
+        markDot(state.quiz.index,"pd-bad");
+        showFeedback(false, q, w, 0, false);
+      }
+    }
+  }
+  function markDot(i,cls){
+    var dots=$("quiz-dots").children;
+    if(dots[i]) dots[i].className="progress-dot "+cls;
+  }
+
+  function spawnSparks(container){
+    for(var i=0;i<6;i++){
+      var s=document.createElement("span");
+      s.className="fm-spark";
+      s.textContent=["✨","⭐","💥","🎉"][i%4];
+      var ang = (i/6)*Math.PI*2;
+      s.style.setProperty("--sx", Math.round(Math.cos(ang)*38)+"px");
+      s.style.setProperty("--sy", Math.round(Math.sin(ang)*38)+"px");
+      s.style.animationDelay=(i*0.03)+"s";
+      container.appendChild(s);
+      (function(el){ setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },750); })(s);
+    }
+  }
+
+  function showFeedback(isCorrect, q, w, xp, willRetry){
+    var overlay=$("feedback-overlay"), card=$("feedback-card");
+    var world=state.selectedWorld;
+    overlay.setAttribute("data-world", world);
+    card.classList.remove("pop-correct","pop-wrong"); void card.offsetWidth;
+    card.classList.add(isCorrect?"pop-correct":"pop-wrong");
+    hide("feedback-sequence"); show("feedback-equation");
+    // Всегда показываем полное равенство крупно — и при верном, и при неверном
+    // ответе — чтобы пример закреплялся в памяти при каждом повторении.
+    $("feedback-equation").textContent = q.a+" × "+q.b+" = "+(q.a*q.b);
+
+    var mascotEl=$("feedback-mascot");
+    mascotEl.innerHTML = MASCOTS[world]||"";
+    mascotEl.classList.remove("fm-happy","fm-sad"); void mascotEl.offsetWidth;
+
+    var commuteNote = q.type==="commute" ? (" Смотри: "+q.shownA+"×"+q.shownB+" и "+q.a+"×"+q.b+" — это одно и то же число, множители можно менять местами!") : "";
+
+    if(isCorrect){
+      mascotEl.classList.add("fm-happy");
+      spawnSparks(mascotEl);
+      $("feedback-line").textContent=pickLine(w.correctLines, world, "correct")+commuteNote;
+      $("feedback-teach").hidden=true;
+      $("feedback-xp").style.display="inline-block";
+      $("feedback-xp").textContent="+"+xp+" очков";
+    } else {
+      mascotEl.classList.add("fm-sad");
+      $("feedback-line").textContent=pickLine(w.wrongLines, world, "wrong")+(willRetry?" Попробуем этот пример ещё раз чуть позже!":"")+commuteNote;
+      $("feedback-teach-label").textContent="Давай разберёмся 👇";
+      var teach = buildTeaching(q.a, q.b, q.a*q.b);
+      var grid = renderTeachGrid(teach.rows, teach.cols);
+      var gridEl=$("feedback-teach-grid");
+      gridEl.style.gridTemplateColumns = "repeat("+grid.cols+","+grid.cell+"px)";
+      gridEl.innerHTML = grid.html;
+      $("feedback-teach-tip").textContent = teach.rows+" × "+teach.cols+" = "+(q.a*q.b)+". "+teach.tip;
+      $("feedback-teach").hidden=false;
+      $("feedback-xp").style.display="none";
+    }
+    overlay.hidden=false;
+  }
+
+  function showSequenceFeedback(q, subResults){
+    var overlay=$("feedback-overlay"), card=$("feedback-card");
+    var world=state.selectedWorld, w=WORLDS[world];
+    var allOk = subResults.every(function(r){return r.finalOk;});
+    var anyOk = subResults.some(function(r){return r.finalOk;});
+    overlay.setAttribute("data-world", world);
+    card.classList.remove("pop-correct","pop-wrong"); void card.offsetWidth;
+    card.classList.add(allOk?"pop-correct":"pop-wrong");
+
+    var mascotEl=$("feedback-mascot");
+    mascotEl.innerHTML = MASCOTS[world]||"";
+    mascotEl.classList.remove("fm-happy","fm-sad"); void mascotEl.offsetWidth;
+    if(allOk){ mascotEl.classList.add("fm-happy"); spawnSparks(mascotEl); $("feedback-line").textContent=pickLine(w.correctLines, world, "correct"); }
+    else { mascotEl.classList.add("fm-sad"); $("feedback-line").textContent=pickLine(w.wrongLines, world, "wrong"); }
+
+    hide("feedback-equation");
+    var seqWrap=$("feedback-sequence");
+    seqWrap.innerHTML = subResults.map(function(r){
+      return '<div class="fs-row '+(r.finalOk?"fs-ok":"fs-bad")+'"><span>'+r.a+' × '+r.b+' = '+(r.a*r.b)+'</span><span>'+(r.finalOk?"✓":"✗")+'</span></div>';
+    }).join("");
+    show("feedback-sequence");
+
+    if(!allOk){
+      $("feedback-teach-label").textContent="Заметил закономерность? 👇";
+      $("feedback-teach-grid").innerHTML="";
+      $("feedback-teach-tip").textContent = q.base+" × "+q.mults[0]+" = "+(q.base*q.mults[0])+", "+q.base+" × "+q.mults[1]+" = "+(q.base*q.mults[1])+", "+q.base+" × "+q.mults[2]+" = "+(q.base*q.mults[2])+". Каждый раз прибавляем ещё "+q.base+"!";
+      $("feedback-teach").hidden=false;
+    } else {
+      $("feedback-teach").hidden=true;
+    }
+    var xpTotal = subResults.filter(function(r){return r.finalOk;}).length*8;
+    $("feedback-xp").style.display = anyOk ? "inline-block" : "none";
+    if(anyOk) $("feedback-xp").textContent="+"+xpTotal+" очков";
+    overlay.hidden=false;
+  }
+  $("feedback-next").addEventListener("click",function(){
+    $("feedback-overlay").hidden=true;
+    state.quiz.index++;
+    if(state.quiz.index>=state.quiz.queue.length){
+      finishQuiz();
+    } else {
+      renderQuizDots();
+      renderCurrentQuestion();
+    }
+  });
+
+  function finishQuiz(){
+    var qz=state.quiz;
+    var total=qz.results.length;
+    var accuracy = total? qz.correctFirstTry/total : 0;
+    var stars = accuracy>=0.9?3:(accuracy>=0.65?2:1);
+    var passed = accuracy>=LEVEL_PASS_RATIO;
+
+    Promise.all([store.getProfile(), store.getStats(), store.getDay(todayStr())]).then(function(r){
+      var profile=normalizeProfile(r[0]);
+      var stats=r[1]||{};
+      var existingDay=r[2];
+      var newStreak;
+      var yesterday=addDays(todayStr(),-1);
+      if(profile.lastCompletedDate===todayStr()) newStreak=profile.streak;
+      else if(profile.lastCompletedDate===yesterday) newStreak=(profile.streak||0)+1;
+      else newStreak=1;
+
+      var newXP=(profile.totalXP||0)+qz.xpGain;
+      var newWorldLevels=Object.assign({},profile.worldLevels);
+      var newWorldPrizes={}; Object.keys(profile.worldPrizes).forEach(function(w){ newWorldPrizes[w]=profile.worldPrizes[w].slice(); });
+
+      var leveledUp=false, prize=null;
+      var isCurrentLevel = (qz.levelIdx === (profile.worldLevels[qz.world]||0));
+      if(!qz.isReplay && isCurrentLevel && passed){
+        var lvlDef=getLevelDef(qz.world, qz.levelIdx);
+        newWorldLevels[qz.world]=qz.levelIdx+1;
+        prize={emoji:lvlDef.prizeEmoji, label:lvlDef.prizeLabel};
+        newWorldPrizes[qz.world].push(prize);
+        leveledUp=true;
+      }
+
+      var newProfile={totalXP:newXP, streak:newStreak, lastCompletedDate:todayStr(), worldLevels:newWorldLevels, worldPrizes:newWorldPrizes};
+
+      var newStats={};
+      ALL_TABLES.forEach(function(t){ newStats[t]=Object.assign({},stats[t]||{correct:0,total:0}); });
+      qz.results.forEach(function(r){
+        [r.a,r.b].forEach(function(t){
+          if(t>=1&&t<=10){
+            newStats[t].total+=1;
+            if(r.firstTry) newStats[t].correct+=1;
+          }
+        });
+      });
+
+      var earnedBadges=[];
+      STREAK_BADGES.forEach(function(b){ if(newStreak>=b.n && (profile.streak||0)<b.n) earnedBadges.push(b); });
+      XP_BADGES.forEach(function(b){ if(newXP>=b.n && (profile.totalXP||0)<b.n) earnedBadges.push(b); });
+
+      var dayDoc;
+      if(existingDay && existingDay.date===todayStr()){
+        dayDoc={
+          date:todayStr(), world:qz.world,
+          correctFirstTry:(existingDay.correctFirstTry||0)+qz.correctFirstTry,
+          totalCount:(existingDay.totalCount||0)+total,
+          xpEarned:(existingDay.xpEarned||0)+qz.xpGain,
+          stars:Math.max(existingDay.stars||0, stars),
+          completed:true,
+          sessionsCount:(existingDay.sessionsCount||1)+1,
+          questions:(existingDay.questions||[]).concat(qz.results)
+        };
+      } else {
+        dayDoc={date:todayStr(), world:qz.world, correctFirstTry:qz.correctFirstTry, totalCount:total, xpEarned:qz.xpGain, stars:stars, completed:true, sessionsCount:1, questions:qz.results};
+      }
+
+      Promise.all([ store.setDay(todayStr(),dayDoc), store.setProfile(newProfile), store.setStats(newStats) ]).then(function(){
+        state.profile=newProfile; state.stats=newStats;
+        state.lastDayDoc=dayDoc;
+        renderSummary(qz, stars, newStreak, earnedBadges, {passed:passed, leveledUp:leveledUp, prize:prize});
+      });
+    });
+  }
+
+  function renderSummary(qz, stars, streak, earnedBadges, info){
+    hideAllScreens();
+    info = info || {passed:true, leveledUp:false, prize:null};
+    $("summary-kidzone").setAttribute("data-world",qz.world);
+    $("summary-mascot").innerHTML=MASCOTS[qz.world]||"";
+    $("summary-stars").textContent = "⭐".repeat(stars)+"☆".repeat(3-stars);
+    $("summary-eyebrow").textContent = info.leveledUp ? "Уровень пройден! 🎉" : (qz.isReplay ? "Тренировка завершена!" : (info.passed ? "Миссия завершена!" : "Почти получилось!"));
+    $("summary-title").textContent = (info.passed || qz.isReplay) ? ("Отличная работа, "+state.config.childName+"!") : ("Хорошая попытка, "+state.config.childName+"!");
+    $("summary-correct").textContent = qz.correctFirstTry+"/"+qz.results.length;
+    $("summary-xpgain").textContent = "+"+qz.xpGain;
+    $("summary-streak").textContent = "🔥"+streak;
+
+    var lr=$("summary-levelresult");
+    if(info.leveledUp && info.prize){
+      lr.innerHTML='<span class="prize-reveal"><span class="pr-emoji">'+info.prize.emoji+'</span> Новый приз: '+esc(info.prize.label)+'</span>';
+    } else if(!info.passed && !qz.isReplay){
+      lr.innerHTML='<div class="level-fail-note">Для победы нужно хотя бы '+Math.round(LEVEL_PASS_RATIO*100)+'% верных ответов с первой попытки. Сыграем ещё раз?</div>';
+    } else if(qz.isReplay){
+      lr.innerHTML='<div class="level-fail-note">Это тренировка — приз уже получен, но опыт и очки сохранены.</div>';
+    } else {
+      lr.innerHTML='';
+    }
+
+    var br=$("summary-badges"); br.innerHTML="";
+    earnedBadges.forEach(function(b){
+      var el=document.createElement("span"); el.className="done-badge"; el.textContent=b.emoji+" "+b.label; br.appendChild(el);
+    });
+    $("summary-share").hidden = !state.lastDayDoc;
+
+    var primaryBtn=$("summary-primary");
+    primaryBtn.onclick=null;
+    if(info.leveledUp){
+      primaryBtn.textContent="Играть дальше →";
+      primaryBtn.onclick=function(){ showMission(qz.levelIdx+1,false); };
+    } else if(!info.passed && !qz.isReplay){
+      primaryBtn.textContent="Попробовать снова →";
+      primaryBtn.onclick=function(){ showMission(qz.levelIdx,false); };
+    } else {
+      primaryBtn.textContent="К карте уровней";
+      primaryBtn.onclick=function(){ state.selectedWorld=qz.world; showLevelPath(); };
+    }
+    $("confetti-wrap").innerHTML="";
+    if(info.passed) renderConfetti();
+    show("screen-summary");
+  }
+  function formatRuDate(ds){ var p=ds.split("-"); return p[2]+"."+p[1]+"."+p[0]; }
+  function buildReport(d, profile){
+    var acc = d.totalCount? Math.round(100*d.correctFirstTry/d.totalCount) : 0;
+    return [
+      "МаркМатика — отчёт за "+formatRuDate(d.date),
+      state.config.childName+": "+d.correctFirstTry+"/"+d.totalCount+" верно ("+acc+"%)",
+      "Очки за день: +"+d.xpEarned+" (всего "+(profile.totalXP||0)+")",
+      "Серия: "+(profile.streak||0)+" дней подряд \uD83D\uDD25",
+      "Мир: "+(WORLDS[d.world]?WORLDS[d.world].name:"")
+    ].join("\n");
+  }
+  function fallbackCopy(text){
+    try{
+      var ta=document.createElement("textarea");
+      ta.value=text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var ok=document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){ return false; }
+  }
+  function copyText(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text).then(function(){return true;}).catch(function(){return fallbackCopy(text);});
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+  function openShareModal(){
+    var d=state.lastDayDoc; if(!d) return;
+    var report=buildReport(d, state.profile);
+    var backdrop=document.createElement("div");
+    backdrop.className="day-modal-backdrop";
+    backdrop.innerHTML =
+      '<div class="card day-modal" style="text-align:left;">'+
+        '<h2 style="margin-bottom:10px;">Поделиться с родителем</h2>'+
+        '<div class="soft" style="white-space:pre-line; background:var(--surface-2); border-radius:10px; padding:12px; font-size:13.5px; margin-bottom:14px;">'+esc(report)+'</div>'+
+        '<div style="display:flex; flex-direction:column; gap:8px;">'+
+          '<a class="btn btn-primary" style="text-decoration:none;" target="_blank" rel="noopener noreferrer" href="https://api.whatsapp.com/send?text='+encodeURIComponent(report)+'">Отправить в WhatsApp</a>'+
+          '<a class="btn btn-ghost" style="text-decoration:none;" target="_blank" rel="noopener noreferrer" href="https://t.me/share/url?url=&text='+encodeURIComponent(report)+'">Отправить в Telegram</a>'+
+          '<button class="btn btn-ghost" id="share-copy">Скопировать текст</button>'+
+        '</div>'+
+        '<button class="btn btn-ghost" id="share-close" style="width:100%; margin-top:14px;">Закрыть</button>'+
+      '</div>';
+    document.body.appendChild(backdrop);
+    function close(){ if(backdrop.parentNode) document.body.removeChild(backdrop); }
+    backdrop.addEventListener("click",function(e){ if(e.target===backdrop) close(); });
+    backdrop.querySelector("#share-close").addEventListener("click",close);
+    backdrop.querySelector("#share-copy").addEventListener("click",function(){
+      var btn=backdrop.querySelector("#share-copy");
+      copyText(report).then(function(ok){
+        btn.textContent = ok ? "Скопировано!" : "Не удалось скопировать";
+        setTimeout(function(){ if(btn) btn.textContent="Скопировать текст"; },1600);
+      });
+    });
+  }
+  $("summary-share").addEventListener("click",openShareModal);
+  function renderConfetti(){
+    var wrap=$("confetti-wrap"); wrap.innerHTML="";
+    var colors=["#FFD23F","#5EEAD4","#FF7A45","#B892FF","#3DDC64"];
+    for(var i=0;i<24;i++){
+      var p=document.createElement("span");
+      p.className="confetti-piece";
+      p.style.left=(Math.random()*100)+"%";
+      p.style.background=colors[i%colors.length];
+      p.style.animationDuration=(1.1+Math.random()*0.9)+"s";
+      p.style.animationDelay=(Math.random()*0.4)+"s";
+      wrap.appendChild(p);
+    }
+  }
+  $("summary-home").addEventListener("click",showRolePicker);
+
+  /* ================= PARENT DASHBOARD ================= */
+  function openParentDashboard(){
+    hideAllScreens();
+    $("parent-childname").textContent="Прогресс: "+state.config.childName;
+    var stage=todayStage();
+    $("parent-stage-line").textContent=stage.title;
+    Promise.all([store.getProfile(), store.getStats(), store.getRecentDays(35)]).then(function(r){
+      state.profile=normalizeProfile(r[0]);
+      state.stats=r[1]||{};
+      state.dashboardDays=r[2].filter(Boolean);
+      renderDashboard();
+    });
+    show("screen-parent");
+  }
+  $("parent-logout").addEventListener("click",showRolePicker);
+  $("parent-settings-btn").addEventListener("click",openSettings);
+
+  function renderDashboard(){
+    $("stat-streak").textContent=(state.profile.streak||0)+" 🔥";
+    $("stat-xp").textContent=state.profile.totalXP||0;
+
+    var totalC=0,totalQ=0;
+    ALL_TABLES.forEach(function(t){ var s=state.stats[t]||state.stats[String(t)]; if(s){totalC+=s.correct;totalQ+=s.total;} });
+    $("stat-accuracy").textContent = totalQ? Math.round(100*totalC/totalQ)+"%" : "—";
+    $("stat-days").textContent = state.dashboardDays.filter(function(d){return d.completed;}).length;
+
+    renderCalendar();
+    renderTableBars();
+    renderWorldProgress();
+    renderBadges();
+  }
+
+  function renderWorldProgress(){
+    var wrap=$("world-progress-row"); wrap.innerHTML="";
+    Object.keys(WORLDS).forEach(function(world){
+      var w=WORLDS[world];
+      var lvl=state.profile.worldLevels[world]||0;
+      var prizes=state.profile.worldPrizes[world]||[];
+      var d=getLevelDef(world,lvl);
+      var row=document.createElement("div");
+      row.style.cssText="display:flex; align-items:center; gap:12px; padding:8px 4px; border-bottom:1px solid var(--line);";
+      row.innerHTML =
+        '<div style="font-weight:800; min-width:150px;">'+esc(w.name)+'</div>'+
+        '<div class="soft" style="flex:1; font-size:13px;">Уровень '+(lvl+1)+' · '+esc(d.name)+'</div>'+
+        '<div style="font-size:13px;" title="Полученные призы">'+(prizes.length? prizes.slice(-6).map(function(p){return p.emoji;}).join(" ") : '<span class="soft">пока нет призов</span>')+'</div>';
+      wrap.appendChild(row);
+    });
+  }
+
+  function accuracyColor(acc){
+    if(acc==null) return "var(--seq-0)";
+    if(acc<0.4) return "var(--seq-1)";
+    if(acc<0.6) return "var(--seq-2)";
+    if(acc<0.75) return "var(--seq-3)";
+    if(acc<0.9) return "var(--seq-4)";
+    return "var(--seq-5)";
+  }
+
+  function renderCalendar(){
+    var wdWrap=$("cal-weekdays"); wdWrap.innerHTML="";
+    ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(function(w){ var el=document.createElement("div"); el.className="cal-wd"; el.textContent=w; wdWrap.appendChild(el); });
+
+    var byDate={}; state.dashboardDays.forEach(function(d){ byDate[d.date]=d; });
+    var N=35;
+    var start=addDays(todayStr(),-(N-1));
+    var startDow=(dateFromStr(start).getDay()+6)%7; // Monday=0
+    var grid=$("cal-grid"); grid.innerHTML="";
+    for(var i=0;i<startDow;i++){ var pad=document.createElement("div"); grid.appendChild(pad); }
+    for(var i=0;i<N;i++){
+      var ds=addDays(start,i);
+      var d=byDate[ds];
+      var cell=document.createElement("div");
+      cell.className="cal-cell";
+      var dayNum=document.createElement("span"); dayNum.className="cal-daynum"; dayNum.textContent=parseInt(ds.slice(8),10);
+      cell.appendChild(dayNum);
+      if(d && d.completed){
+        var acc = d.totalCount? d.correctFirstTry/d.totalCount : null;
+        cell.style.background=accuracyColor(acc);
+        cell.classList.add("has-data");
+        cell.addEventListener("click",function(dd){ return function(){ openDayModal(dd); }; }(d));
+      } else {
+        cell.style.background="var(--seq-0)";
+      }
+      grid.appendChild(cell);
+    }
+  }
+
+  function openDayModal(d){
+    var backdrop=document.createElement("div");
+    backdrop.className="day-modal-backdrop";
+    var acc = d.totalCount? Math.round(100*d.correctFirstTry/d.totalCount) : 0;
+    var rowsHtml = (d.questions||[]).map(function(q){
+      var okIcon = q.finalOk ? (q.firstTry?"✅":"🟡") : "❌";
+      var label = q.finalOk ? (q.firstTry?"верно":"верно со 2-й попытки") : "ошибка";
+      return '<div class="day-q-row"><span>'+q.a+' × '+q.b+' = '+(q.a*q.b)+'</span><span class="q-status">'+okIcon+' '+label+'</span></div>';
+    }).join("");
+    backdrop.innerHTML =
+      '<div class="card day-modal">'+
+        '<div class="section-head"><h2>'+esc(d.date)+'</h2><span class="soft">'+esc(WORLDS[d.world]?WORLDS[d.world].name:"")+'</span></div>'+
+        '<p class="soft" style="margin-bottom:10px;">Точность: '+acc+'% · '+d.correctFirstTry+'/'+d.totalCount+' · +'+d.xpEarned+' очков</p>'+
+        (rowsHtml || '<p class="soft">Подробностей нет.</p>')+
+        '<button class="btn btn-ghost" id="day-modal-close" style="width:100%; margin-top:14px;">Закрыть</button>'+
+      '</div>';
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener("click",function(e){ if(e.target===backdrop) document.body.removeChild(backdrop); });
+    backdrop.querySelector("#day-modal-close").addEventListener("click",function(){ document.body.removeChild(backdrop); });
+  }
+
+  function renderTableBars(){
+    var wrap=$("table-bars"); wrap.innerHTML="";
+    ALL_TABLES.forEach(function(t){
+      var s=state.stats[t]||state.stats[String(t)]||{correct:0,total:0};
+      var acc = s.total? s.correct/s.total : null;
+      var pct = acc==null? 0 : Math.round(acc*100);
+      var statusColor="var(--ink-mute)", statusLabel="нет данных", statusDot="var(--line)";
+      if(acc!=null){
+        if(acc<0.6){statusColor="var(--critical)"; statusLabel="нужно повторить"; statusDot="var(--critical)";}
+        else if(acc<0.85){statusColor="var(--warning)"; statusLabel="почти освоено"; statusDot="var(--warning)";}
+        else {statusColor="var(--good)"; statusLabel="отлично"; statusDot="var(--good)";}
+      }
+      var row=document.createElement("div");
+      row.className="table-bar-row";
+      row.innerHTML =
+        '<div class="table-bar-label">×'+t+'</div>'+
+        '<div class="table-bar-track"><div class="table-bar-fill" style="width:'+pct+'%; background:'+accuracyColor(acc)+';"></div></div>'+
+        '<div class="table-bar-status" style="color:'+statusColor+';"><span class="dot" style="background:'+statusDot+';"></span>'+(acc==null?statusLabel:pct+"% · "+statusLabel)+'</div>';
+      wrap.appendChild(row);
+    });
+  }
+
+  function renderBadges(){
+    var wrap=$("badge-row"); wrap.innerHTML="";
+    var streak=state.profile.streak||0, xp=state.profile.totalXP||0;
+    STREAK_BADGES.concat(XP_BADGES).forEach(function(b,i){
+      var achieved = i<STREAK_BADGES.length ? streak>=b.n : xp>=b.n;
+      var el=document.createElement("span");
+      el.className="badge-chip"+(achieved?"":" locked");
+      el.textContent=b.emoji+" "+b.label;
+      wrap.appendChild(el);
+    });
+  }
+
+  /* ================= PARENT SETTINGS ================= */
+  var settingsCount=14;
+  function openSettings(){
+    hideAllScreens();
+    $("set-name").value=state.config.childName;
+    $("set-startdate").value=state.config.startDate;
+    settingsCount=state.config.dailyCount;
+    $("set-count-out").textContent=settingsCount;
+    $("set-pin1").value=""; $("set-pin2").value="";
+    hide("settings-msg");
+    show("screen-settings");
+  }
+  $("settings-back").addEventListener("click",openParentDashboard);
+  $("set-count-minus").addEventListener("click",function(){ settingsCount=Math.max(8,settingsCount-1); $("set-count-out").textContent=settingsCount; });
+  $("set-count-plus").addEventListener("click",function(){ settingsCount=Math.min(20,settingsCount+1); $("set-count-out").textContent=settingsCount; });
+
+  $("settings-save").addEventListener("click",function(){
+    var name=$("set-name").value.trim()||state.config.childName;
+    var startDate=$("set-startdate").value||state.config.startDate;
+    var pin1=$("set-pin1").value.trim(), pin2=$("set-pin2").value.trim();
+    var update={childName:name, startDate:startDate, dailyCount:settingsCount};
+    if(pin1.length>0 || pin2.length>0){
+      if(!/^\d{4}$/.test(pin1) || pin1!==pin2){
+        var msg=$("settings-msg"); msg.hidden=false; msg.style.color="var(--critical)"; msg.textContent="PIN должен быть из 4 цифр и совпадать в обоих полях."; return;
+      }
+      update.pin=pin1;
+    }
+    store.updateConfig(update).then(function(){
+      Object.assign(state.config,update);
+      var msg=$("settings-msg"); msg.hidden=false; msg.style.color="var(--good)"; msg.textContent="Сохранено!";
+      $("parent-stage-line").textContent=todayStage().title;
+    });
+  });
+
+  function customConfirm(title, body, confirmLabel, onConfirm){
+    var backdrop=document.createElement("div");
+    backdrop.className="day-modal-backdrop";
+    backdrop.innerHTML =
+      '<div class="card day-modal" style="text-align:left;">'+
+        '<h2 style="color:var(--critical); margin-bottom:10px;">'+esc(title)+'</h2>'+
+        '<p class="soft" style="margin-bottom:18px;">'+esc(body)+'</p>'+
+        '<div style="display:flex; gap:10px;">'+
+          '<button class="btn btn-ghost" id="cc-cancel" style="flex:1;">Отмена</button>'+
+          '<button class="btn btn-danger" id="cc-confirm" style="flex:1; background:var(--critical); color:#fff;">'+esc(confirmLabel)+'</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(backdrop);
+    function close(){ if(backdrop.parentNode) document.body.removeChild(backdrop); }
+    backdrop.addEventListener("click",function(e){ if(e.target===backdrop) close(); });
+    backdrop.querySelector("#cc-cancel").addEventListener("click",close);
+    backdrop.querySelector("#cc-confirm").addEventListener("click",function(){ close(); onConfirm(); });
+  }
+  function customNotice(title, body){
+    var backdrop=document.createElement("div");
+    backdrop.className="day-modal-backdrop";
+    backdrop.innerHTML =
+      '<div class="card day-modal" style="text-align:left;">'+
+        '<h2 style="margin-bottom:10px;">'+esc(title)+'</h2>'+
+        '<p class="soft" style="margin-bottom:18px;">'+esc(body)+'</p>'+
+        '<button class="btn btn-primary" id="cn-ok" style="width:100%;">Понятно</button>'+
+      '</div>';
+    document.body.appendChild(backdrop);
+    function close(){ if(backdrop.parentNode) document.body.removeChild(backdrop); }
+    backdrop.addEventListener("click",function(e){ if(e.target===backdrop) close(); });
+    backdrop.querySelector("#cn-ok").addEventListener("click",close);
+  }
+
+  $("settings-reset").addEventListener("click",function(){
+    customConfirm(
+      "Сбросить весь прогресс?",
+      "Очки, серия дней, статистика по таблицам и вся история занятий будут удалены безвозвратно. Это действие нельзя отменить.",
+      "Да, сбросить всё",
+      function(){
+        store.resetAll().then(function(){
+          customNotice("Готово", "Прогресс обнулён. Марк начинает с чистого листа.");
+          openParentDashboard();
+        });
+      }
+    );
+  });
+
+  /* ===================== BOOT ===================== */
+  init();
+})();
+</script>
+</body>
+</html>
